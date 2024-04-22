@@ -45,7 +45,7 @@ static Chassis_Upload_Data_s chassis_feedback_data; // 底盘回传的反馈数�
 static referee_info_t* referee_data; // 用于获取裁判系统的数据
 static Referee_Interactive_info_t ui_data; // UI数据，将底盘中的数据传入此结构体的对应变量中，UI会自动检测是否变化，对应显示UI
 
-static SuperCapInstance *cap;                                       // 超级电容
+//static SuperCapInstance *cap;                                       // 超级电容
 static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left right forward back
 
 /* 用于自旋变速策略的时间变量 */
@@ -105,13 +105,13 @@ void ChassisInit()
 
     referee_data = UITaskInit(&huart6,&ui_data); // 裁判系统初始化,会同时初始化UI
 
-    SuperCap_Init_Config_s cap_conf = {
-        .can_config = {
-            .can_handle = &hcan2,
-            .tx_id = 0x302, // 超级电容默认接收id
-            .rx_id = 0x301, // 超级电容默认发送id,注意tx和rx在其他人看来是反的
-        }};
-    cap = SuperCapInit(&cap_conf); // 超级电容初始化
+//    SuperCap_Init_Config_s cap_conf = {
+//        .can_config = {
+//            .can_handle = &hcan2,
+//            .tx_id = 0x302, // 超级电容默认接收id
+//            .rx_id = 0x301, // 超级电容默认发送id,注意tx和rx在其他人看来是反的
+//        }};
+//    cap = SuperCapInit(&cap_conf); // 超级电容初始化
 
     // 发布订阅初始化,如果为双板,则需要can comm来传递消息
 #ifdef CHASSIS_BOARD
