@@ -7,7 +7,7 @@
 	<p>
 		<img src="https://img.shields.io/badge/version-beta-blue"/>
 		<img src="https://img.shields.io/badge/license-MIT-green"/>
-    	<img src="https://github.com/HNUYueLuRM/basic_framework/actions/workflows/c-cpp.yml/badge.svg"/>
+    	<img src="https://github.com/NeptuneIsTheBest/basic_framework/actions/workflows/c-cpp.yml/badge.svg"/>
     </p>
    	<p>
 		<img src="https://gitee.com/HNUYueLuRM/basic_framework/badge/star.svg"/>
