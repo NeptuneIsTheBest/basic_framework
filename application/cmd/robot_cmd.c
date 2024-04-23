@@ -99,8 +99,8 @@ static void RemoteControlSet() {
     // 云台参数,确定云台控制数据
     if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中]，底盘跟随云台
     {
-        gimbal_cmd_send.yaw += 0.005f * (float) rc_data[TEMP].rc.rocker_l_;
-        gimbal_cmd_send.pitch += 0.001f * (float) rc_data[TEMP].rc.rocker_l1;
+        gimbal_cmd_send.yaw -= 0.005f * (float) rc_data[TEMP].rc.rocker_l_;
+        gimbal_cmd_send.pitch -= 0.001f * (float) rc_data[TEMP].rc.rocker_l1;
         // 软件限位
         if (gimbal_cmd_send.pitch < -30) {
             gimbal_cmd_send.pitch = -30;
