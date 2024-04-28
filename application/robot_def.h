@@ -94,6 +94,7 @@ typedef enum
     GIMBAL_ZERO_FORCE = 0, // 电流零输入
     GIMBAL_FREE_MODE,      // 云台自由运动模式,即与底盘分离(底盘此时应为NO_FOLLOW)反馈值为电机total_angle;似乎可以改为全部用IMU数据?
     GIMBAL_GYRO_MODE,      // 云台陀螺仪反馈模式,反馈值为陀螺仪pitch,total_yaw_angle,底盘可以为小陀螺和跟随模式
+    GIMBAL_AIM_MODE,       // 云台瞄准模式,反馈值为陀螺仪pitch,total_yaw_angle,底盘可以为小陀螺和跟随模式
 } gimbal_mode_e;
 
 // 发射模式设置
@@ -102,6 +103,7 @@ typedef enum
     SHOOT_OFF = 0,
     SHOOT_ON,
 } shoot_mode_e;
+
 typedef enum
 {
     FRICTION_OFF = 0, // 摩擦轮关闭
@@ -183,21 +185,28 @@ typedef struct
     // attitude_t chassis_imu_data;
 #endif
     // 后续增加底盘的真实速度
-    // float real_vx;
-    // float real_vy;
-    // float real_wz;
+    float real_vx;
+    float real_vy;
+    float real_wz;
 
-    uint8_t rest_heat;           // 剩余枪口热量
+    uint16_t rest_heat_l;           // 剩余左枪口热量
+    uint16_t rest_heat_r;           // 剩余右枪口热量
     Bullet_Speed_e bullet_speed; // 弹速限制
     Enemy_Color_e enemy_color;   // 0 for blue, 1 for red
-
+    float current_HP;         // 当前己方哨兵血量
+    float stage_remain_time;  // 时间
+    float game_progress;
+    float current_base_hp;  //己方基地血量
+    float current_enemy_base_hp; //敌方基地血量
+    float current_enemy_sentry_hp; //敌方哨兵血量
+    float current_shield_hp; //己方虚拟护盾百分比
 } Chassis_Upload_Data_s;
 
 
 typedef struct
 {
     attitude_t gimbal_imu_data;
-    uint16_t yaw_motor_single_round_angle;
+    float yaw_motor_single_round_angle;
 } Gimbal_Upload_Data_s;
 
 typedef struct
