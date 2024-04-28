@@ -23,7 +23,7 @@ typedef struct
 /*更新发送数据帧，并计算发送数据帧长度*/
 void get_protocol_send_data(uint16_t send_id,		 // 信号id
 							uint16_t flags_register, // 16位寄存器
-							float *tx_data,			 // 待发送的float数据
+							const float *tx_data,			 // 待发送的float数据
 							uint8_t float_length,	 // float的数据长度
 							uint8_t *tx_buf,		 // 待发送的数据帧
 							uint16_t *tx_buf_len);	 // 待发送的数据帧长度
