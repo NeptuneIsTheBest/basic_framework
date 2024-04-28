@@ -60,6 +60,27 @@ static uint8_t protocol_heade_Check(protocol_rm_struct *pro, uint8_t *rx_buf) {
 }
 
 /*
+ * simple code to set flags register
+ */
+void set_flag_register(uint16_t *flags_register, const uint8_t *flags, uint8_t flags_length) {
+    *flags_register = 0;
+
+    for (uint8_t i = 0; i < flags_length && i < 4; i++) {
+        *flags_register = (*flags_register << 4) | (flags[i] & 0xff);
+    }
+}
+
+/*
+ * simple code to get flags register
+ */
+void get_flag_register(const uint16_t *flags_register, uint8_t *flags, uint8_t flags_length) {
+    for (uint8_t i = 0; i < flags_length && i < 4; i++) {
+        uint8_t shift_amount = (flags_length - i - 1) * 4;
+        flags[i] = (*flags_register >> shift_amount) & 0xff;
+    }
+}
+
+/*
     此函数根据待发送的数据更新数据帧格式以及内容，实现数据的打包操作
     后续调用通信接口的发送函数发送tx_buf中的对应数据
 */
