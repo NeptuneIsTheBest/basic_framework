@@ -181,16 +181,12 @@ typedef struct
 
 typedef struct
 {
-#if defined(CHASSIS_BOARD) || defined(GIMBAL_BOARD) // 非单板的时候底盘还将imu数据回传(若有必要)
-    // attitude_t chassis_imu_data;
-#endif
     // 后续增加底盘的真实速度
     float real_vx;
     float real_vy;
     float real_wz;
 
-    uint16_t rest_heat_l;           // 剩余左枪口热量
-    uint16_t rest_heat_r;           // 剩余右枪口热量
+    uint16_t rest_heat;           // 剩余枪口热量
     Bullet_Speed_e bullet_speed; // 弹速限制
     Enemy_Color_e enemy_color;   // 0 for blue, 1 for red
     float current_HP;         // 当前己方哨兵血量
@@ -206,7 +202,7 @@ typedef struct
 typedef struct
 {
     attitude_t gimbal_imu_data;
-    float yaw_motor_single_round_angle;
+    uint16_t yaw_motor_single_round_angle;
 } Gimbal_Upload_Data_s;
 
 typedef struct
