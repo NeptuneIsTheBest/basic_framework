@@ -26,7 +26,6 @@ static Chassis_Upload_Data_s chassis_fetch_data; // 从底盘应用接收的反�
 
 static RC_ctrl_t *rc_data;              // 遥控器数据,初始化时返回
 static Vision_Recv_s *vision_recv_data; // 视觉接收数据指针,初始化时返回
-// static Vision_Send_s vision_send_data;  // 视觉发送数据
 
 static Publisher_t *gimbal_cmd_pub;            // 云台控制消息发布者
 static Subscriber_t *gimbal_feed_sub;          // 云台反馈信息订阅者
@@ -97,6 +96,9 @@ static void RemoteControlSet() {
     // 云台参数,确定云台控制数据
     gimbal_cmd_send.yaw -= 0.005f * (float) rc_data[TEMP].rc.rocker_l_;
     gimbal_cmd_send.pitch -= 0.001f * (float) rc_data[TEMP].rc.rocker_l1;
+
+    gimbal_cmd_send.pitch -= vision_recv_data->pitch;
+    gimbal_cmd_send.yaw -= vision_recv_data->yaw;
     // 软件限位
     if (gimbal_cmd_send.pitch < -30) {
         gimbal_cmd_send.pitch = -30;
@@ -106,6 +108,9 @@ static void RemoteControlSet() {
 
     chassis_cmd_send.vx = 10.0f * (float) rc_data[TEMP].rc.rocker_r_;
     chassis_cmd_send.vy = 10.0f * (float) rc_data[TEMP].rc.rocker_r1;
+
+    chassis_cmd_send.vx += 10.0f * vision_recv_data->vel_x;
+    chassis_cmd_send.vy += 10.0f * vision_recv_data->vel_y;
 }
 
 static void AutomaticControlSet() {
@@ -154,22 +159,24 @@ void RobotCMDTask() {
     // 根据gimbal的反馈值计算云台和底盘正方向的夹角,不需要传参,通过static私有变量完成
     CalcOffsetAngle();
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
-    if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 遥控器右侧开关状态为[中]，遥控器控制
+    if (switch_is_mid(rc_data[TEMP].rc.switch_right)) {
+        // 遥控器右侧开关状态为[中]，遥控器控制
         RemoteControlSet();
-    else if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 遥控器右侧开关状态为[下]，自动控制
+    } else if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 遥控器右侧开关状态为[下]，自动控制
         AutomaticControlSet();
 
     EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
 
     // 设置视觉发送数据,还需增加加速度和角速度数据
-    RefreeSetAltitude(chassis_fetch_data.current_HP, chassis_fetch_data.stage_remain_time, chassis_fetch_data.game_progress, chassis_fetch_data.current_enemy_sentry_hp, chassis_fetch_data.current_enemy_base_hp, chassis_fetch_data.current_shield_hp, chassis_fetch_data.current_base_hp);
+    RefreeSetAltitude(chassis_fetch_data.current_HP, chassis_fetch_data.stage_remain_time,
+                      chassis_fetch_data.game_progress, chassis_fetch_data.current_enemy_sentry_hp,
+                      chassis_fetch_data.current_enemy_base_hp, chassis_fetch_data.current_shield_hp,
+                      chassis_fetch_data.current_base_hp);
     VisionSetFlag(chassis_fetch_data.enemy_color, VISION_MODE_AIM, chassis_fetch_data.bullet_speed);
     SlamSetAltitude(chassis_fetch_data.real_vx, chassis_fetch_data.real_vy, gimbal_fetch_data.gimbal_imu_data.Gyro[2]);
     VisionSetAltitude(gimbal_cmd_send.yaw, -gimbal_cmd_send.pitch, 0.0f, 1.0f);
 
     PubPushMessage(chassis_cmd_pub, (void *) &chassis_cmd_send);
-
     PubPushMessage(shoot_cmd_pub, (void *) &shoot_cmd_send);
     PubPushMessage(gimbal_cmd_pub, (void *) &gimbal_cmd_send);
-    VisionSend();
 }
