@@ -1,41 +1,37 @@
-name: Build
+name: Build Test
 
 on:
   push:
-    branches: ["master"]
+    branches: [ "master" ]
   pull_request:
-    branches: ["master"]
+    branches: [ "master" ]
 
 jobs:
+
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        build-system: ["make", "ninja"]
+        build-system: [ "make", "ninja" ]
+
     steps:
+      - uses: carlosperate/arm-none-eabi-gcc-action@v1
+      - run: arm-none-eabi-gcc --version
+
       - uses: actions/checkout@v3
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ${{ github.workspace }}/build
-            ~/.cache/arm-none-eabi-gcc
-          key: ${{ runner.os }}-build-${{ matrix.build-system }}-${{ hashFiles('**/CMakeLists.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ matrix.build-system }}-
-            ${{ runner.os }}-build-
-      - name: Install ARM GCC
-        uses: carlosperate/arm-none-eabi-gcc-action@v1
-        with:
-          cache: ~/.cache/arm-none-eabi-gcc
-      - name: Check ARM GCC version
-        run: arm-none-eabi-gcc --version
-      - name: Build with ${{ matrix.build-system }}
+
+      - name: Build with make
         if: matrix.build-system == 'make'
         run: |
-          make -j $(nproc)
-      - name: Build with ${{ matrix.build-system }}
+          nproc=$(nproc)
+          make -j$((nproc + 1))
+
+      - name: Setup Ninja
+        if: matrix.build-system == 'ninja'
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Build with Ninja
         if: matrix.build-system == 'ninja'
         run: |
-          cmake -G Ninja -B build .
+          cmake -B build -G Ninja
           ninja -C build
