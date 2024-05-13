@@ -1,21 +1,19 @@
-name: Build Test
+name: Build
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        build-system: [ "make", "ninja" ]
-
+        build-system: ["make", "ninja"]
     steps:
       - uses: actions/checkout@v3
-
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
@@ -26,21 +24,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-${{ matrix.build-system }}-
             ${{ runner.os }}-build-
-
       - name: Install ARM GCC
         uses: carlosperate/arm-none-eabi-gcc-action@v1
         with:
           cache: ~/.cache/arm-none-eabi-gcc
-
       - name: Check ARM GCC version
         run: arm-none-eabi-gcc --version
-
       - name: Build with ${{ matrix.build-system }}
         if: matrix.build-system == 'make'
-        run: make -j $(nproc)
+        run: |
+          make -j $(nproc)
       - name: Build with ${{ matrix.build-system }}
         if: matrix.build-system == 'ninja'
-        uses: seanmiddleditch/gha-setup-ninja@master
         run: |
           cmake -G Ninja -B build .
           ninja -C build
