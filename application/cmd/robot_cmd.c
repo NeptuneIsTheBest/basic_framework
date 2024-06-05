@@ -94,23 +94,23 @@ static void RemoteControlSet() {
     chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
     gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
     // 云台参数,确定云台控制数据
-    gimbal_cmd_send.yaw -= 0.005f * (float) rc_data[TEMP].rc.rocker_l_;
-    gimbal_cmd_send.pitch -= 0.001f * (float) rc_data[TEMP].rc.rocker_l1;
+    if (switch_is_up(rc_data[TEMP].rc.switch_left)) { //遥控器左侧开关在上，纯遥控器控制云台
+        gimbal_cmd_send.yaw -= 0.005f * (float) rc_data[TEMP].rc.rocker_l_;
+        gimbal_cmd_send.pitch -= 0.001f * (float) rc_data[TEMP].rc.rocker_l1;
 
-    gimbal_cmd_send.pitch -= vision_recv_data->pitch;
-    gimbal_cmd_send.yaw -= vision_recv_data->yaw;
+        chassis_cmd_send.vx = 10.0f * (float) rc_data[TEMP].rc.rocker_r_;
+        chassis_cmd_send.vy = 10.0f * (float) rc_data[TEMP].rc.rocker_r1;
+    } else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) { //遥控器左侧开关在中间，视觉控制云台移动
+            chassis_cmd_send.vx = 10.0f * vision_recv_data->vel_x;
+            chassis_cmd_send.vy = 10.0f * vision_recv_data->vel_y;
+    }
+
     // 软件限位
     if (gimbal_cmd_send.pitch < -30) {
         gimbal_cmd_send.pitch = -30;
     } else if (gimbal_cmd_send.pitch > 30) {
         gimbal_cmd_send.pitch = 30;
     }
-
-    chassis_cmd_send.vx = 10.0f * (float) rc_data[TEMP].rc.rocker_r_;
-    chassis_cmd_send.vy = 10.0f * (float) rc_data[TEMP].rc.rocker_r1;
-
-    chassis_cmd_send.vx += 10.0f * vision_recv_data->vel_x;
-    chassis_cmd_send.vy += 10.0f * vision_recv_data->vel_y;
 }
 
 static void AutomaticControlSet() {
