@@ -101,8 +101,11 @@ static void RemoteControlSet() {
         chassis_cmd_send.vx = 10.0f * (float) rc_data[TEMP].rc.rocker_r_;
         chassis_cmd_send.vy = 10.0f * (float) rc_data[TEMP].rc.rocker_r1;
     } else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) { //遥控器左侧开关在中间，视觉控制云台移动
-            chassis_cmd_send.vx = 10.0f * vision_recv_data->vel_x;
-            chassis_cmd_send.vy = 10.0f * vision_recv_data->vel_y;
+        gimbal_cmd_send.yaw = vision_recv_data->yaw;
+        gimbal_cmd_send.pitch = vision_recv_data->pitch;
+
+        chassis_cmd_send.vx = 10.0f * vision_recv_data->vel_x;
+        chassis_cmd_send.vy = 10.0f * vision_recv_data->vel_y;
     }
 
     // 软件限位
