@@ -23,6 +23,10 @@ jobs:
           nproc=$(nproc)
           make -j$((nproc + 1))
 
+      - name: Setup Ninja
+        if: ${{ matrix.build-system == 'ninja' }}
+        uses: seanmiddleditch/gha-setup-ninja@master
+
       - name: Build with Ninja
         if: ${{ matrix.build-system == 'ninja' }}
         run: |
