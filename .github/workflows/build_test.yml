@@ -1,8 +1,6 @@
 name: Build Test
 
 on:
-  push:
-    branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
 
@@ -28,6 +26,5 @@ jobs:
       - name: Build with Ninja
         if: ${{ matrix.build-system == 'ninja' }}
         run: |
-          nproc=$(nproc)
           cmake -B build -G Ninja
-          cmake --build build -- -j$((nproc + 1))
+          ninja -C build
