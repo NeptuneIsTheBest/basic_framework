@@ -38,7 +38,7 @@ SPIInstance *SPIRegister(SPI_Init_Config_s *conf)
     return instance;
 }
 
-void SPITransmit(SPIInstance *spi_ins, uint8_t *ptr_data, uint8_t len)
+void SPITransmit(SPIInstance *spi_ins, uint8_t *ptr_data, uint16_t len)
 {
     // 拉低片选,开始传输(选中从机)
     HAL_GPIO_WritePin(spi_ins->GPIOx, spi_ins->cs_pin, GPIO_PIN_RESET);
@@ -62,7 +62,7 @@ void SPITransmit(SPIInstance *spi_ins, uint8_t *ptr_data, uint8_t len)
     }
 }
 
-void SPIRecv(SPIInstance *spi_ins, uint8_t *ptr_data, uint8_t len)
+void SPIRecv(SPIInstance *spi_ins, uint8_t *ptr_data, uint16_t len)
 {
     // 用于稍后回调使用
     spi_ins->rx_size = len;
@@ -89,7 +89,7 @@ void SPIRecv(SPIInstance *spi_ins, uint8_t *ptr_data, uint8_t len)
     }
 }
 
-void SPITransRecv(SPIInstance *spi_ins, uint8_t *ptr_data_rx, uint8_t *ptr_data_tx, uint8_t len)
+void SPITransRecv(SPIInstance *spi_ins, uint8_t *ptr_data_rx, uint8_t *ptr_data_tx, uint16_t len)
 {
 
     // 用于稍后回调使用,请保证ptr_data_rx在回调函数被调用之前仍然在作用域内,否则析构之后的行为是未定义的!!!
