@@ -71,9 +71,9 @@ typedef struct {
     Work_Mode_e work_mode;
     Bullet_Speed_e bullet_speed;
 
-    float yaw;
-    float pitch;
-    float roll;
+    float yaw;//1
+    float pitch;//2
+    float roll;//3
     float vel_x;
     float vel_y;
     float gimabl_angle;
@@ -83,8 +83,8 @@ typedef struct {
     float current_HP;
     float current_enemy_sentry_hp;
     float current_enemy_base_hp;
-    float current_shield_hp;
-    float current_base_hp;
+    float current_shield_hp;//13
+    float current_base_hp;//14
 } Vision_Send_s;
 #pragma pack()
 

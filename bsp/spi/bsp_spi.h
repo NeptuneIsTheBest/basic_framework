@@ -63,7 +63,7 @@ SPIInstance *SPIRegister(SPI_Init_Config_s *conf);
  * @param ptr_data 要发送的数据
  * @param len 待发送的数据长度
  */
-void SPITransmit(SPIInstance *spi_ins, uint8_t *ptr_data, uint8_t len);
+void SPITransmit(SPIInstance *spi_ins, uint8_t *ptr_data, uint16_t len);
 
 /**
  * @brief 通过spi从从机获取数据
@@ -73,7 +73,7 @@ void SPITransmit(SPIInstance *spi_ins, uint8_t *ptr_data, uint8_t len);
  * @param ptr_data 接受数据buffer的首地址
  * @param len 待接收的长度
  */
-void SPIRecv(SPIInstance *spi_ins, uint8_t *ptr_data, uint8_t len);
+void SPIRecv(SPIInstance *spi_ins, uint8_t *ptr_data, uint16_t len);
 
 /**
  * @brief 通过spi利用移位寄存器同时收发数据
@@ -85,7 +85,7 @@ void SPIRecv(SPIInstance *spi_ins, uint8_t *ptr_data, uint8_t len);
  * @param ptr_data_tx 发送数据地址
  * @param len 接收&发送的长度
  */
-void SPITransRecv(SPIInstance *spi_ins, uint8_t *ptr_data_rx, uint8_t *ptr_data_tx, uint8_t len);
+void SPITransRecv(SPIInstance *spi_ins, uint8_t *ptr_data_rx, uint8_t *ptr_data_tx, uint16_t len);
 
 /**
  * @brief 设定spi收发的工作模式

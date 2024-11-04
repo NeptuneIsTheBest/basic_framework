@@ -20,7 +20,6 @@
 /* cmd应用包含的模块实例指针和交互信息存储*/
 static Publisher_t *chassis_cmd_pub;   // 底盘控制消息发布者
 static Subscriber_t *chassis_feed_sub; // 底盘反馈信息订阅者
-
 static Chassis_Ctrl_Cmd_s chassis_cmd_send;      // 发送给底盘应用的信息,包括控制信息和UI绘制相关
 static Chassis_Upload_Data_s chassis_fetch_data; // 从底盘应用接收的反馈信息信息,底盘功率枪口热量与底盘运动状态等
 
@@ -39,7 +38,7 @@ static Shoot_Upload_Data_s shoot_fetch_data; // 从发射获取的反馈信息
 
 static Robot_Status_e robot_state; // 机器人整体工作状态
 
-static float AutomaticPitchControlRatio = 1.0f;
+//static float AutomaticPitchControlRatio = 1.0f;
 
 void RobotCMDInit() {
     rc_data = RemoteControlInit(&huart3);   // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
@@ -68,7 +67,7 @@ void RobotCMDInit() {
 static void CalcOffsetAngle() {
     // 别名angle提高可读性,不然太长了不好看,虽然基本不会动这个函数
     static float angle;
-    angle = gimbal_fetch_data.yaw_motor_single_round_angle; // 从云台获取的当前yaw电机单圈角度
+    angle = gimbal_fetch_data.yaw_motor_single_round_angle; // 从云台获取的当前yaw电机单圈角度（一圈内）
 #if YAW_ECD_GREATER_THAN_4096                               // 如果大于180度
     if (angle > YAW_ALIGN_ANGLE && angle <= 180.0f + YAW_ALIGN_ANGLE)
         chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
@@ -77,8 +76,8 @@ static void CalcOffsetAngle() {
     else
         chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
 #else // 小于180度
-    if (angle > YAW_ALIGN_ANGLE)
-        chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
+    if (angle > YAW_ALIGN_ANGLE)//大于正方向相对零刻度
+        chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;//时刻与相对零刻度的偏差
     else if (angle <= YAW_ALIGN_ANGLE && angle >= YAW_ALIGN_ANGLE - 180.0f)
         chassis_cmd_send.offset_angle = angle - YAW_ALIGN_ANGLE;
     else
@@ -90,44 +89,98 @@ static void CalcOffsetAngle() {
  * @brief 控制输入为遥控器(调试时)的模式和控制量设置
  *
  */
-static void RemoteControlSet() {
-    chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+//static void RemoteControlSet() {
+//    chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+//    gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
+//    // 云台参数,确定云台控制数据
+//    if (switch_is_up(rc_data[TEMP].rc.switch_left)) { //遥控器左侧开关在上，纯遥控器控制云台
+//        gimbal_cmd_send.yaw -= 0.005f * (float) rc_data[TEMP].rc.rocker_l_;
+//        gimbal_cmd_send.pitch -= 0.001f * (float) rc_data[TEMP].rc.rocker_l1;
+//
+//        chassis_cmd_send.vx = 10.0f * (float) rc_data[TEMP].rc.rocker_r_;
+//        chassis_cmd_send.vy = 10.0f * (float) rc_data[TEMP].rc.rocker_r1;
+//    } else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) { //遥控器左侧开关在中间，视觉控制云台移动
+//        gimbal_cmd_send.yaw = vision_recv_data->yaw;
+//        gimbal_cmd_send.pitch = vision_recv_data->pitch;
+//
+//        chassis_cmd_send.vx = 10.0f * vision_recv_data->vel_x;
+//        chassis_cmd_send.vy = 10.0f * vision_recv_data->vel_y;
+//    }
+//
+//
+//    // 软件限位
+//    if (gimbal_cmd_send.pitch < -30) {
+//        gimbal_cmd_send.pitch = -30;
+//    } else if (gimbal_cmd_send.pitch > 30) {
+//        gimbal_cmd_send.pitch = 30;
+//    }
+//}
+static void Rotate(){
+
+        chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+        gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
+        // 云台参数,确定云台控制数据
+        if (switch_is_up(rc_data[TEMP].rc.switch_left)) { //遥控器左侧开关在上，纯遥控器控制云台
+            gimbal_cmd_send.yaw -= 0.005f * (float) rc_data[TEMP].rc.rocker_l_;
+            gimbal_cmd_send.pitch -= 0.001f * (float) rc_data[TEMP].rc.rocker_l1;
+
+            chassis_cmd_send.vx = 10.0f * (float) rc_data[TEMP].rc.rocker_r_;
+            chassis_cmd_send.vy = 10.0f * (float) rc_data[TEMP].rc.rocker_r1;
+        } else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) { //遥控器左侧开关在中间，视觉控制云台移动
+            gimbal_cmd_send.yaw = vision_recv_data->yaw;
+            gimbal_cmd_send.pitch = vision_recv_data->pitch;
+
+            chassis_cmd_send.vx = 10.0f * vision_recv_data->vel_x;
+            chassis_cmd_send.vy = 10.0f * vision_recv_data->vel_y;
+        }
+
+
+        // 软件限位
+        if (gimbal_cmd_send.pitch < -30) {
+            gimbal_cmd_send.pitch = -30;
+        } else if (gimbal_cmd_send.pitch > 30) {
+            gimbal_cmd_send.pitch = 30;
+        }
+    }
+
+
+//static void AutomaticControlSet() {
+//    chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+//    gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
+//
+//    gimbal_cmd_send.yaw += 1.0f;
+//    gimbal_cmd_send.pitch += 1.0f * AutomaticPitchControlRatio;
+//    if (gimbal_cmd_send.pitch < -30) {
+//        gimbal_cmd_send.pitch = -30;
+//        AutomaticPitchControlRatio *= -1;
+//    } else if (gimbal_cmd_send.pitch > 30) {
+//        gimbal_cmd_send.pitch = 30;
+//        AutomaticPitchControlRatio *= -1;
+//    }
+//}
+static void ChassisFllowGibalYaw() {
+    chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
     gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
-    // 云台参数,确定云台控制数据
+
     if (switch_is_up(rc_data[TEMP].rc.switch_left)) { //遥控器左侧开关在上，纯遥控器控制云台
         gimbal_cmd_send.yaw -= 0.005f * (float) rc_data[TEMP].rc.rocker_l_;
         gimbal_cmd_send.pitch -= 0.001f * (float) rc_data[TEMP].rc.rocker_l1;
 
         chassis_cmd_send.vx = 10.0f * (float) rc_data[TEMP].rc.rocker_r_;
         chassis_cmd_send.vy = 10.0f * (float) rc_data[TEMP].rc.rocker_r1;
-    } else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) { //遥控器左侧开关在中间，视觉控制云台移动
+    }
+    else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) { //遥控器左侧开关在中间，视觉控制云台移动
         gimbal_cmd_send.yaw = vision_recv_data->yaw;
         gimbal_cmd_send.pitch = vision_recv_data->pitch;
 
         chassis_cmd_send.vx = 10.0f * vision_recv_data->vel_x;
         chassis_cmd_send.vy = 10.0f * vision_recv_data->vel_y;
     }
-
     // 软件限位
     if (gimbal_cmd_send.pitch < -30) {
         gimbal_cmd_send.pitch = -30;
     } else if (gimbal_cmd_send.pitch > 30) {
         gimbal_cmd_send.pitch = 30;
-    }
-}
-
-static void AutomaticControlSet() {
-    chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
-    gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
-
-    gimbal_cmd_send.yaw += 1.0f;
-    gimbal_cmd_send.pitch += 1.0f * AutomaticPitchControlRatio;
-    if (gimbal_cmd_send.pitch < -30) {
-        gimbal_cmd_send.pitch = -30;
-        AutomaticPitchControlRatio *= -1;
-    } else if (gimbal_cmd_send.pitch > 30) {
-        gimbal_cmd_send.pitch = 30;
-        AutomaticPitchControlRatio *= -1;
     }
 }
 
@@ -164,9 +217,12 @@ void RobotCMDTask() {
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
     if (switch_is_mid(rc_data[TEMP].rc.switch_right)) {
         // 遥控器右侧开关状态为[中]，遥控器控制
-        RemoteControlSet();
+        //RemoteControlSet();
+        ChassisFllowGibalYaw();
     } else if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 遥控器右侧开关状态为[下]，自动控制
-        AutomaticControlSet();
+        //AutomaticControlSet();
+        Rotate();
+
 
     EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
 

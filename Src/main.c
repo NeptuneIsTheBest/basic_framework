@@ -79,7 +79,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+    HAL_RCC_DeInit();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/

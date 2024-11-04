@@ -48,10 +48,10 @@ void OSTaskInit()
     osThreadDef(robottask, StartROBOTTASK, osPriorityNormal, 0, 1024);
     robotTaskHandle = osThreadCreate(osThread(robottask), NULL);
 
-    osThreadDef(uitask, StartUITASK, osPriorityNormal, 0, 512);
-    uiTaskHandle = osThreadCreate(osThread(uitask), NULL);
+   // osThreadDef(uitask, StartUITASK, osPriorityNormal, 0, 512);
+   // uiTaskHandle = osThreadCreate(osThread(uitask), NULL);
 
-    HTMotorControlInit(); // 没有注册HT电机则不会执行
+    //HTMotorControlInit(); // 没有注册HT电机则不会执行
 }
 
 __attribute__((noreturn)) void StartINSTASK(void const *argument)

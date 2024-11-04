@@ -1,0 +1,97 @@
+"D:\CLion\CLion 2024.1.4\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=D:/CLion/CLion 2024.1.4/bin/ninja/win/x64/ninja.exe" -DCMAKE_C_COMPILER=D:/CLion/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-gcc.exe -DCMAKE_CXX_COMPILER=D:/CLion/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-g++.exe -G Ninja -S D:\university\competitions\Robomaster\basic_framework_new -B D:\university\competitions\Robomaster\basic_framework_new\cmake-build-debug
+-- The C compiler identification is GNU 13.3.1
+-- The ASM compiler identification is GNU
+-- Found assembler: D:/CLion/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-gcc.exe
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Drivers
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Drivers/CMSIS
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Drivers/CMSIS/Device
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Drivers/CMSIS/Device/ST
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Drivers/CMSIS/Device/ST/STM32F4xx
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Drivers/CMSIS/Device/ST/STM32F4xx/Include
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Drivers/CMSIS/Include
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Drivers/STM32F4xx_HAL_Driver
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Drivers/STM32F4xx_HAL_Driver/Inc
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Drivers/STM32F4xx_HAL_Driver/Src
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/ARM
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/ARM/DSP
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/ARM/DSP/Inc
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/ARM/DSP/Include
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/ARM/DSP/Include/dsp
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/ARM/DSP/Lib
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/STM32_USB_Device_Library
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/STM32_USB_Device_Library/Class
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/STM32_USB_Device_Library/Class/CDC
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/STM32_USB_Device_Library/Core
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/ST/STM32_USB_Device_Library/Core/Src
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party/FreeRTOS
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party/FreeRTOS/Source
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party/FreeRTOS/Source/include
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party/FreeRTOS/Source/portable
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party/SEGGER
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party/SEGGER/Config
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Middlewares/Third_Party/SEGGER/RTT
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp/adc
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp/can
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp/dwt
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp/flash
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp/gpio
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp/iic
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp/log
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp/pwm
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp/spi
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp/usart
+include dir: D:/university/competitions/Robomaster/basic_framework_new/bsp/usb
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/BMI088
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/TFminiPlus
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/alarm
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/algorithm
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/bluetooth
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/can_comm
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/daemon
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/encoder
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/imu
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/ist8310
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/master_machine
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/message_center
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/motor
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/motor/DJImotor
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/motor/DMmotor
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/motor/HTmotor
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/motor/LKmotor
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/motor/servo_motor
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/motor/step_motor
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/oled
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/referee
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/remote
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/standard_cmd
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/super_cap
+include dir: D:/university/competitions/Robomaster/basic_framework_new/modules/unicomm
+include dir: D:/university/competitions/Robomaster/basic_framework_new/application
+include dir: D:/university/competitions/Robomaster/basic_framework_new/application/chassis
+include dir: D:/university/competitions/Robomaster/basic_framework_new/application/cmd
+include dir: D:/university/competitions/Robomaster/basic_framework_new/application/gimbal
+include dir: D:/university/competitions/Robomaster/basic_framework_new/application/shoot
+include dir: D:/university/competitions/Robomaster/basic_framework_new/Inc
+-- Minimal optimization, debug info included
+-- Configuring done (1.6s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CMAKE_CXX_COMPILER
+
+
+-- Build files have been written to: D:/university/competitions/Robomaster/basic_framework_new/cmake-build-debug
