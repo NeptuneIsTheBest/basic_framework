@@ -16,29 +16,33 @@
 
 static Vision_Recv_s recv_data;
 static Vision_Send_s send_data;
-static DaemonInstance *vision_daemon_instance;
+static DaemonInstance* vision_daemon_instance;
 
-void VisionSetFlag(Enemy_Color_e enemy_color, Work_Mode_e work_mode, Bullet_Speed_e bullet_speed) {
+void VisionSetFlag(Enemy_Color_e enemy_color, Work_Mode_e work_mode, Bullet_Speed_e bullet_speed)
+{
     send_data.enemy_color = enemy_color;
     send_data.work_mode = work_mode;
     send_data.bullet_speed = bullet_speed;
 }
 
-void VisionSetAltitude(float yaw, float pitch, float roll, float GimbalSend) {
+void VisionSetAltitude(float yaw, float pitch, float roll, float GimbalSend)
+{
     send_data.yaw = yaw;
     send_data.pitch = pitch;
     send_data.roll = roll;
     send_data.gimbal_send = GimbalSend;
 }
 
-void SlamSetAltitude(float x, float y, float gimbal_angle) {
+void SlamSetAltitude(float x, float y, float gimbal_angle)
+{
     send_data.vel_x = x;
     send_data.vel_y = y;
     send_data.gimabl_angle = gimbal_angle;
 }
 
 void RefreeSetAltitude(float current_HP, float stage_remain_time, float game_progress, float enemy_sentry_HP,
-                       float enemy_base_HP, float shield_HP, float current_base_HP) {
+                       float enemy_base_HP, float shield_HP, float current_base_HP)
+{
     send_data.current_HP = current_HP;
     send_data.stage_remain_time = stage_remain_time;
     send_data.game_progress = game_progress;
@@ -55,7 +59,8 @@ void RefreeSetAltitude(float current_HP, float stage_remain_time, float game_pro
  *
  * @param id vision_usart_instance的地址,此处没用.
  */
-static void VisionOfflineCallback(void *id) {
+static void VisionOfflineCallback(void* id)
+{
 #ifdef VISION_USE_UART
     USARTServiceInit(vision_usart_instance);
 #endif // !VISION_USE_UART
@@ -130,36 +135,39 @@ void VisionSend()
 
 #include "bsp_usb.h"
 
-static uint8_t *vis_recv_buff;
+static uint8_t* vis_recv_buff;
 
-static void DecodeVision(uint16_t recv_len) {
+static void DecodeVision(uint16_t recv_len)
+{
     uint16_t flag_register;
-    get_protocol_info(vis_recv_buff, &flag_register, (uint8_t *) &recv_data.pitch);
-    get_flag_register(&flag_register, (uint8_t *) &recv_data, 3);
+    get_protocol_info(vis_recv_buff, &flag_register, (uint8_t*)&recv_data.pitch);
+    get_flag_register(&flag_register, (uint8_t*)&recv_data, 3);
 }
 
 /* 视觉通信初始化 */
-Vision_Recv_s *VisionInit(UART_HandleTypeDef *_handle) {
+Vision_Recv_s* VisionInit(UART_HandleTypeDef* _handle)
+{
     UNUSED(_handle); // 仅为了消除警告
     USB_Init_Config_s conf = {.rx_cbk = DecodeVision};
     vis_recv_buff = USBInit(conf);
 
     // 为master process注册daemon,用于判断视觉通信是否离线
     Daemon_Init_Config_s daemon_conf = {
-            .callback = VisionOfflineCallback, // 离线时调用的回调函数,会重启串口接收
-            .owner_id = NULL,
-            .reload_count = 5, // 50ms
+        .callback = VisionOfflineCallback, // 离线时调用的回调函数,会重启串口接收
+        .owner_id = NULL,
+        .reload_count = 5, // 50ms
     };
     vision_daemon_instance = DaemonRegister(&daemon_conf);
 
     return &recv_data;
 }
 
-void VisionSend() {
+void VisionSend()
+{
     static uint16_t flag_register;
     static uint8_t send_buff[VISION_SEND_SIZE];
     static uint16_t tx_len;
-    set_flag_register(&flag_register, (uint8_t *) &send_data, 3);
+    set_flag_register(&flag_register, (uint8_t*)&send_data, 3);
     // 将数据转化为seasky协议的数据包
     get_protocol_send_data(0x02, flag_register, &send_data.yaw, 14, send_buff, &tx_len);
     USBTransmit(send_buff, tx_len);

@@ -16,12 +16,14 @@
 #include "memory.h"
 
 /*获取CRC8校验码*/
-uint8_t Get_CRC8_Check(uint8_t *pchMessage, uint16_t dwLength) {
+uint8_t Get_CRC8_Check(uint8_t* pchMessage, uint16_t dwLength)
+{
     return crc_8(pchMessage, dwLength);
 }
 
 /*检验CRC8数据段*/
-static uint8_t CRC8_Check_Sum(uint8_t *pchMessage, uint16_t dwLength) {
+static uint8_t CRC8_Check_Sum(uint8_t* pchMessage, uint16_t dwLength)
+{
     uint8_t ucExpected = 0;
     if ((pchMessage == 0) || (dwLength <= 2))
         return 0;
@@ -30,26 +32,32 @@ static uint8_t CRC8_Check_Sum(uint8_t *pchMessage, uint16_t dwLength) {
 }
 
 /*获取CRC16校验码*/
-uint16_t Get_CRC16_Check(uint8_t *pchMessage, uint32_t dwLength) {
+uint16_t Get_CRC16_Check(uint8_t* pchMessage, uint32_t dwLength)
+{
     return crc_16(pchMessage, dwLength);
 }
 
 /*检验CRC16数据段*/
-static uint16_t CRC16_Check_Sum(uint8_t *pchMessage, uint32_t dwLength) {
+static uint16_t CRC16_Check_Sum(uint8_t* pchMessage, uint32_t dwLength)
+{
     uint16_t wExpected = 0;
-    if ((pchMessage == 0) || (dwLength <= 2)) {
+    if ((pchMessage == 0) || (dwLength <= 2))
+    {
         return 0;
     }
     wExpected = crc_16(pchMessage, dwLength - 2);
     return (((wExpected & 0xff) == pchMessage[dwLength - 2]) &&
-            (((wExpected >> 8) & 0xff) == pchMessage[dwLength - 1]));
+        (((wExpected >> 8) & 0xff) == pchMessage[dwLength - 1]));
 }
 
 /*检验数据帧头*/
-static uint8_t protocol_heade_Check(protocol_rm_struct *pro, uint8_t *rx_buf) {
-    if (rx_buf[0] == PROTOCOL_CMD_ID) {
+static uint8_t protocol_heade_Check(protocol_rm_struct* pro, uint8_t* rx_buf)
+{
+    if (rx_buf[0] == PROTOCOL_CMD_ID)
+    {
         pro->header.sof = rx_buf[0];
-        if (CRC8_Check_Sum(&rx_buf[0], 4)) {
+        if (CRC8_Check_Sum(&rx_buf[0], 4))
+        {
             pro->header.data_length = (rx_buf[2] << 8) | rx_buf[1];
             pro->header.crc_check = rx_buf[3];
             pro->cmd_id = (rx_buf[5] << 8) | rx_buf[4];
@@ -62,10 +70,12 @@ static uint8_t protocol_heade_Check(protocol_rm_struct *pro, uint8_t *rx_buf) {
 /*
  * simple code to set flags register
  */
-void set_flag_register(uint16_t *flags_register, const uint8_t *flags, uint8_t flags_length) {
+void set_flag_register(uint16_t* flags_register, const uint8_t* flags, uint8_t flags_length)
+{
     *flags_register = 0;
 
-    for (uint8_t i = 0; i < flags_length && i < 4; i++) {
+    for (uint8_t i = 0; i < flags_length && i < 4; i++)
+    {
         *flags_register = (*flags_register << 4) | (flags[i] & 0xff);
     }
 }
@@ -73,8 +83,10 @@ void set_flag_register(uint16_t *flags_register, const uint8_t *flags, uint8_t f
 /*
  * simple code to get flags register
  */
-void get_flag_register(const uint16_t *flags_register, uint8_t *flags, uint8_t flags_length) {
-    for (uint8_t i = 0; i < flags_length && i < 4; i++) {
+void get_flag_register(const uint16_t* flags_register, uint8_t* flags, uint8_t flags_length)
+{
+    for (uint8_t i = 0; i < flags_length && i < 4; i++)
+    {
         uint8_t shift_amount = (flags_length - i - 1) * 4;
         flags[i] = (*flags_register >> shift_amount) & 0xff;
     }
@@ -84,12 +96,12 @@ void get_flag_register(const uint16_t *flags_register, uint8_t *flags, uint8_t f
     此函数根据待发送的数据更新数据帧格式以及内容，实现数据的打包操作
     后续调用通信接口的发送函数发送tx_buf中的对应数据
 */
-void get_protocol_send_data(uint16_t send_id,        // 信号id
+void get_protocol_send_data(uint16_t send_id, // 信号id
                             uint16_t flags_register, // 16位寄存器
-                            const float *tx_data,          // 待发送的float数据
-                            uint8_t float_length,    // float的数据长度
-                            uint8_t *tx_buf,         // 待发送的数据帧
-                            uint16_t *tx_buf_len)    // 待发送的数据帧长度
+                            const float* tx_data, // 待发送的float数据
+                            uint8_t float_length, // float的数据长度
+                            uint8_t* tx_buf, // 待发送的数据帧
+                            uint16_t* tx_buf_len) // 待发送的数据帧长度
 {
     static uint16_t crc16;
     static uint16_t data_len;
@@ -97,9 +109,9 @@ void get_protocol_send_data(uint16_t send_id,        // 信号id
     data_len = float_length * 4 + 2;
     /*帧头部分*/
     tx_buf[0] = PROTOCOL_CMD_ID;
-    tx_buf[1] = data_len & 0xff;        // 低位在前
+    tx_buf[1] = data_len & 0xff; // 低位在前
     tx_buf[2] = (data_len >> 8) & 0xff; // 低位在前
-    tx_buf[3] = crc_8(&tx_buf[0], 3);   // 获取CRC8校验位
+    tx_buf[3] = crc_8(&tx_buf[0], 3); // 获取CRC8校验位
 
     /*数据的信号id*/
     tx_buf[4] = send_id & 0xff;
@@ -110,8 +122,9 @@ void get_protocol_send_data(uint16_t send_id,        // 信号id
     tx_buf[7] = (flags_register >> 8) & 0xff;
 
     /*float数据段*/
-    for (int i = 0; i < 4 * float_length; i++) {
-        tx_buf[i + 8] = ((uint8_t *) (&tx_data[i / 4]))[i % 4];
+    for (int i = 0; i < 4 * float_length; i++)
+    {
+        tx_buf[i + 8] = ((uint8_t*)(&tx_data[i / 4]))[i % 4];
     }
 
     /*整包校验*/
@@ -126,17 +139,19 @@ void get_protocol_send_data(uint16_t send_id,        // 信号id
     此函数用于处理接收数据，
     返回数据内容的id
 */
-uint16_t get_protocol_info(uint8_t *rx_buf,          // 接收到的原始数据
-                           uint16_t *flags_register, // 接收数据的16位寄存器地址
-                           uint8_t *rx_data)         // 接收的float数据存储地址
+uint16_t get_protocol_info(uint8_t* rx_buf, // 接收到的原始数据
+                           uint16_t* flags_register, // 接收数据的16位寄存器地址
+                           uint8_t* rx_data) // 接收的float数据存储地址
 {
     // 放在静态区,避免反复申请栈上空间
     static protocol_rm_struct pro;
     static uint16_t date_length;
 
-    if (protocol_heade_Check(&pro, rx_buf)) {
+    if (protocol_heade_Check(&pro, rx_buf))
+    {
         date_length = OFFSET_BYTE + pro.header.data_length;
-        if (CRC16_Check_Sum(&rx_buf[0], date_length)) {
+        if (CRC16_Check_Sum(&rx_buf[0], date_length))
+        {
             *flags_register = (rx_buf[7] << 8) | rx_buf[6];
             memcpy(rx_data, rx_buf + 8, pro.header.data_length - 2);
             return pro.cmd_id;
