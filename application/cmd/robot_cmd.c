@@ -15,6 +15,9 @@
 #define YAW_ALIGN_ANGLE (YAW_CHASSIS_ALIGN_ECD * ECD_ANGLE_COEF_DJI) // 对齐时的角度,0-360
 #define PITCH_HORIZON_ANGLE (PITCH_HORIZON_ECD * ECD_ANGLE_COEF_DJI) // pitch水平时电机的角度,0-360
 
+#define chassis_remote_ratio 10.0
+#define chassis_power_buffer 2.0
+
 /* cmd应用包含的模块实例指针和交互信息存储*/
 static Publisher_t* chassis_cmd_pub; // 底盘控制消息发布者
 static Subscriber_t* chassis_feed_sub; // 底盘反馈信息订阅者
@@ -36,8 +39,6 @@ static Shoot_Ctrl_Cmd_s shoot_cmd_send; // 传递给发射的控制信息
 static Shoot_Upload_Data_s shoot_fetch_data; // 从发射获取的反馈信息
 
 static Robot_Status_e robot_state; // 机器人整体工作状态
-
-static float AutomaticPitchControlRatio = 1.0f;
 
 void RobotCMDInit()
 {
@@ -86,56 +87,45 @@ static void CalcOffsetAngle()
  */
 static void RemoteControlSet()
 {
+    // 云台参数, 遥控器[左]侧开关确定云台控制数据
     chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
     gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
-    // 云台参数,确定云台控制数据
-    if (switch_is_up(rc_data[TEMP].rc.switch_left))
-    {
-        //遥控器左侧开关在上，纯遥控器控制云台
-        gimbal_cmd_send.yaw -= 0.005f * (float)rc_data[TEMP].rc.rocker_l_;
-        gimbal_cmd_send.pitch -= 0.001f * (float)rc_data[TEMP].rc.rocker_l1;
 
-        chassis_cmd_send.vx = 10.0f * (float)rc_data[TEMP].rc.rocker_r_;
-        chassis_cmd_send.vy = 10.0f * (float)rc_data[TEMP].rc.rocker_r1;
-    }
-    else if (switch_is_mid(rc_data[TEMP].rc.switch_left))
-    {
-        //遥控器左侧开关在中间，视觉控制云台移动
-        gimbal_cmd_send.yaw = vision_recv_data->yaw;
-        gimbal_cmd_send.pitch = vision_recv_data->pitch;
+    shoot_cmd_send.friction_mode = FRICTION_OFF;
+    shoot_cmd_send.load_mode = LOAD_STOP;
+    shoot_cmd_send.shoot_mode = SHOOT_OFF;
 
-        chassis_cmd_send.vx = 10.0f * vision_recv_data->vel_x;
-        chassis_cmd_send.vy = 10.0f * vision_recv_data->vel_y;
-    }
+    // 遥控器[左]侧开关在[上]，遥控器控制云台
+    gimbal_cmd_send.yaw -= 0.005f * (float)rc_data[TEMP].rc.rocker_l_;
+    gimbal_cmd_send.pitch -= 0.001f * (float)rc_data[TEMP].rc.rocker_l1;
 
-    // 软件限位
-    if (gimbal_cmd_send.pitch < -30)
+    chassis_cmd_send.vx = chassis_remote_ratio * (float)rc_data[TEMP].rc.rocker_r_;
+    chassis_cmd_send.vy = chassis_remote_ratio * (float)rc_data[TEMP].rc.rocker_r1;
+    // 遥控器[左]侧开关在[中]，视觉控制云台移动
+    if (switch_is_mid(rc_data[TEMP].rc.switch_left))
     {
-        gimbal_cmd_send.pitch = -30;
+        if (vision_recv_data->target_state != NO_TARGET)
+        {
+            // 存在目标时视觉控制云台移动
+            gimbal_cmd_send.yaw = vision_recv_data->yaw;
+            gimbal_cmd_send.pitch = vision_recv_data->pitch;
+        }
     }
-    else if (gimbal_cmd_send.pitch > 30)
+    else if (switch_is_down(rc_data[TEMP].rc.switch_left))
     {
-        gimbal_cmd_send.pitch = 30;
+        // 开！
+        shoot_cmd_send.friction_mode = FRICTION_ON;
+        shoot_cmd_send.load_mode = LOAD_1_BULLET;
+        shoot_cmd_send.shoot_mode = SHOOT_ON;
     }
 }
 
-static void AutomaticControlSet()
+/**
+ * @brief 控制输入为键鼠的模式和控制量设置
+ *
+ */
+static void MouseKeyControlSet()
 {
-    chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
-    gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
-
-    gimbal_cmd_send.yaw += 1.0f;
-    gimbal_cmd_send.pitch += 1.0f * AutomaticPitchControlRatio;
-    if (gimbal_cmd_send.pitch < -30)
-    {
-        gimbal_cmd_send.pitch = -30;
-        AutomaticPitchControlRatio *= -1;
-    }
-    else if (gimbal_cmd_send.pitch > 30)
-    {
-        gimbal_cmd_send.pitch = 30;
-        AutomaticPitchControlRatio *= -1;
-    }
 }
 
 /**
@@ -163,6 +153,52 @@ static void EmergencyHandler()
     }
 }
 
+static void ControlTask()
+{
+    // 根据遥控器右侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
+    if (switch_is_mid(rc_data[TEMP].rc.switch_right))
+    {
+        // 遥控器右侧开关状态为[中]，遥控器控制
+        RemoteControlSet();
+    }
+    else if (switch_is_down(rc_data[TEMP].rc.switch_right))
+    {
+        // 遥控器右侧开关状态为[下]，键鼠控制
+        MouseKeyControlSet();
+    }
+
+    // 软件限位
+    if (gimbal_cmd_send.pitch < PITCH_MIN_ANGLE)
+    {
+        gimbal_cmd_send.pitch = -30;
+    }
+    else if (gimbal_cmd_send.pitch > PITCH_MAX_ANGLE)
+    {
+        gimbal_cmd_send.pitch = 30;
+    }
+}
+
+static void PublishMessageTask()
+{
+    // 设置视觉发送数据,还需增加加速度和角速度数据
+    RefreeSetAltitude(
+        chassis_fetch_data.current_HP,
+        chassis_fetch_data.stage_remain_time,
+        chassis_fetch_data.game_progress,
+        chassis_fetch_data.current_enemy_sentry_hp,
+        chassis_fetch_data.current_enemy_base_hp,
+        chassis_fetch_data.current_shield_hp,
+        chassis_fetch_data.current_base_hp
+    );
+    VisionSetFlag(chassis_fetch_data.enemy_color, VISION_MODE_AIM, chassis_fetch_data.bullet_speed);
+    SlamSetAltitude(chassis_fetch_data.real_vx, chassis_fetch_data.real_vy, gimbal_fetch_data.gimbal_imu_data.Gyro[2]);
+    VisionSetAltitude(gimbal_cmd_send.yaw, -gimbal_cmd_send.pitch, 0.0f, 1.0f);
+
+    PubPushMessage(chassis_cmd_pub, (void*)&chassis_cmd_send);
+    PubPushMessage(shoot_cmd_pub, (void*)&shoot_cmd_send);
+    PubPushMessage(gimbal_cmd_pub, (void*)&gimbal_cmd_send);
+}
+
 /* 机器人核心控制任务,200Hz频率运行(必须高于视觉发送频率) */
 void RobotCMDTask()
 {
@@ -172,27 +208,10 @@ void RobotCMDTask()
 
     // 根据gimbal的反馈值计算云台和底盘正方向的夹角,不需要传参,通过static私有变量完成
     CalcOffsetAngle();
-    // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
-    if (switch_is_mid(rc_data[TEMP].rc.switch_right))
-    {
-        // 遥控器右侧开关状态为[中]，遥控器控制
-        RemoteControlSet();
-    }
-    else if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 遥控器右侧开关状态为[下]，自动控制
-        AutomaticControlSet();
+
+    ControlTask();
 
     EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
 
-    // 设置视觉发送数据,还需增加加速度和角速度数据
-    RefreeSetAltitude(chassis_fetch_data.current_HP, chassis_fetch_data.stage_remain_time,
-                      chassis_fetch_data.game_progress, chassis_fetch_data.current_enemy_sentry_hp,
-                      chassis_fetch_data.current_enemy_base_hp, chassis_fetch_data.current_shield_hp,
-                      chassis_fetch_data.current_base_hp);
-    VisionSetFlag(chassis_fetch_data.enemy_color, VISION_MODE_AIM, chassis_fetch_data.bullet_speed);
-    SlamSetAltitude(chassis_fetch_data.real_vx, chassis_fetch_data.real_vy, gimbal_fetch_data.gimbal_imu_data.Gyro[2]);
-    VisionSetAltitude(gimbal_cmd_send.yaw, -gimbal_cmd_send.pitch, 0.0f, 1.0f);
-
-    PubPushMessage(chassis_cmd_pub, (void*)&chassis_cmd_send);
-    PubPushMessage(shoot_cmd_pub, (void*)&shoot_cmd_send);
-    PubPushMessage(gimbal_cmd_pub, (void*)&gimbal_cmd_send);
+    PublishMessageTask();
 }
