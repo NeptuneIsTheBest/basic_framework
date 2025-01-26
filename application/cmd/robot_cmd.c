@@ -93,7 +93,6 @@ static void RemoteControlSet()
 
     shoot_cmd_send.friction_mode = FRICTION_OFF;
     shoot_cmd_send.load_mode = LOAD_STOP;
-    shoot_cmd_send.shoot_mode = SHOOT_OFF;
 
     // 遥控器[左]侧开关在[上]，遥控器控制云台
     gimbal_cmd_send.yaw -= 0.005f * (float)rc_data[TEMP].rc.rocker_l_;
@@ -116,7 +115,6 @@ static void RemoteControlSet()
         // 开！
         shoot_cmd_send.friction_mode = FRICTION_ON;
         shoot_cmd_send.load_mode = LOAD_1_BULLET;
-        shoot_cmd_send.shoot_mode = SHOOT_ON;
     }
 }
 
@@ -126,6 +124,84 @@ static void RemoteControlSet()
  */
 static void MouseKeyControlSet()
 {
+    chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+    gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
+
+    // 底盘和云台控制可能需要添加系数
+    chassis_cmd_send.vx = (float)(rc_data[TEMP].key[KEY_PRESS].a - rc_data[TEMP].key[KEY_PRESS].d);
+    chassis_cmd_send.vy = (float)(rc_data[TEMP].key[KEY_PRESS].w - rc_data[TEMP].key[KEY_PRESS].s);
+    gimbal_cmd_send.yaw -= (float)rc_data[TEMP].mouse.x * 0.005f;
+    gimbal_cmd_send.pitch -= (float)rc_data[TEMP].mouse.y * 0.001f;
+
+    if (rc_data[TEMP].mouse.press_r)
+    {
+        // 按住鼠标右键，视觉控制云台
+        if (vision_recv_data->target_state != NO_TARGET)
+        {
+            gimbal_cmd_send.yaw = vision_recv_data->yaw;
+            gimbal_cmd_send.pitch = vision_recv_data->pitch;
+        }
+    }
+
+    switch (rc_data[TEMP].key_count[KEY_PRESS][Key_F] % 2)
+    {
+    // F键开关摩擦轮
+    case 0:
+        shoot_cmd_send.friction_mode = FRICTION_OFF;
+        break;
+    default:
+        shoot_cmd_send.friction_mode = FRICTION_ON;
+        break;
+    }
+
+    switch (rc_data[TEMP].key_count[KEY_PRESS][Key_X] % 2)
+    {
+    // X切换自瞄射击模式，
+    case 0:
+        vision_recv_data->fire_mode = AUTO_AIM;
+        break;
+    default:
+        vision_recv_data->fire_mode = AUTO_FIRE;
+        break;
+    }
+
+    if (shoot_cmd_send.friction_mode == FRICTION_ON)
+    {
+        // 左键单击
+        switch (rc_data[TEMP].mouse.press_l)
+        {
+        case 0:
+            shoot_cmd_send.load_mode = LOAD_STOP;
+            break;
+        default:
+            if (!rc_data[TEMP].mouse.press_r || vision_recv_data->target_state == NO_TARGET)
+            {
+                shoot_cmd_send.load_mode = LOAD_1_BULLET;
+            }
+            else
+            {
+                if (vision_recv_data->fire_mode == AUTO_AIM)
+                {
+                    shoot_cmd_send.load_mode = LOAD_1_BULLET;
+                }
+                else if (vision_recv_data->fire_mode == AUTO_FIRE)
+                {
+                    shoot_cmd_send.load_mode = vision_recv_data->target_state == READY_TO_FIRE ? LOAD_1_BULLET : LOAD_STOP;
+                }
+            }
+            break;
+        }
+    }
+    else
+    {
+        shoot_cmd_send.load_mode = LOAD_STOP;
+    }
+
+    if (rc_data[TEMP].key[KEY_PRESS].shift)
+    {
+        chassis_cmd_send.vx *= chassis_power_buffer;
+        chassis_cmd_send.vy *= chassis_power_buffer;
+    }
 }
 
 /**
