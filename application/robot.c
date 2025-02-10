@@ -8,6 +8,8 @@
 #pragma message "check if you have configured the parameters in robot_def.h, IF NOT, please refer to the comments AND DO IT, otherwise the robot will have FATAL ERRORS!!!"
 #endif // !ROBOT_DEF_PARAM_WARNING
 
+#include "shoot.h"
+#include "gimbal.h"
 #include "chassis.h"
 #include "robot_cmd.h"
 
@@ -20,8 +22,12 @@ void RobotInit()
     __disable_irq();
 
     BSPInit();
+
     RobotCMDInit();
+
     ChassisInit();
+    GimbalInit();
+    ShootInit();
 
     OSTaskInit(); // 创建基础任务
 
@@ -32,5 +38,8 @@ void RobotInit()
 void RobotTask()
 {
     RobotCMDTask();
+
     ChassisTask();
+    GimbalTask();
+    ShootTask();
 }
