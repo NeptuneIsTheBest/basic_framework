@@ -121,7 +121,7 @@ static void MecanumCalculate()
 static void LimitChassisOutput()
 {
     // 功率限制待添加
-    SetPowerLimit(referee_data->PowerHeatData.chassis_power);
+    SetPowerLimit(referee_data->PowerHeatData.chassis_power > 0 ? referee_data->PowerHeatData.chassis_power : 40);
     // referee_data->PowerHeatData.chassis_power_buffer;
 
     // 完成功率限制后进行电机参考输入设定
