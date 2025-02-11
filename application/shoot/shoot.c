@@ -1,4 +1,7 @@
 #include "shoot.h"
+
+#include <power_control.h>
+
 #include "robot_def.h"
 
 #include "dji_motor.h"
@@ -53,12 +56,12 @@ void ShootInit()
         },
         .motor_type = M3508
     };
-    friction_config.can_init_config.tx_id = 1,
-        friction_l = DJIMotorInit(&friction_config);
+    friction_config.can_init_config.tx_id = 1;
+    friction_l = PowerControlInit(&friction_config);
 
     friction_config.can_init_config.tx_id = 2; // 右摩擦轮,改txid和方向就行
     friction_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
-    friction_r = DJIMotorInit(&friction_config);
+    friction_r = PowerControlInit(&friction_config);
 
     // 拨盘电机
     Motor_Init_Config_s loader_config = {
@@ -99,7 +102,7 @@ void ShootInit()
         },
         .motor_type = M2006 // 英雄使用m3508
     };
-    loader = DJIMotorInit(&loader_config);
+    loader = PowerControlInit(&loader_config);
 
     shoot_pub = PubRegister("shoot_feed", sizeof(Shoot_Upload_Data_s));
     shoot_sub = SubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
