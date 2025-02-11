@@ -1,4 +1,7 @@
 #include "gimbal.h"
+
+#include <power_control.h>
+
 #include "robot_def.h"
 #include "dji_motor.h"
 #include "ins_task.h"
@@ -94,8 +97,8 @@ void GimbalInit()
         .motor_type = GM6020,
     };
 
-    yaw_motor = DJIMotorInit(&yaw_config);
-    pitch_motor = DJIMotorInit(&pitch_config);
+    yaw_motor = PowerControlInit(&yaw_config);
+    pitch_motor = PowerControlInit(&pitch_config);
 
     gimbal_pub = PubRegister("gimbal_feed", sizeof(Gimbal_Upload_Data_s));
     gimbal_sub = SubRegister("gimbal_cmd", sizeof(Gimbal_Ctrl_Cmd_s));
