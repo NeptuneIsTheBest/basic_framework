@@ -102,11 +102,8 @@ void ChassisInit()
 #define RF_CENTER ((HALF_TRACK_WIDTH - CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE - CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
 #define LB_CENTER ((HALF_TRACK_WIDTH + CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE + CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
 #define RB_CENTER ((HALF_TRACK_WIDTH - CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE + CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
-/**
- * @brief 计算每个轮毂电机的输出,正运动学解算
- *        用宏进行预替换减小开销,运动解算具体过程参考教程
- */
-static void MecanumCalculate()
+
+static void OmniCalculate()
 {
     vt_lf = -chassis_vx - chassis_vy - chassis_cmd_recv.wz * LF_CENTER;
     vt_rf = -chassis_vx + chassis_vy - chassis_cmd_recv.wz * RF_CENTER;
@@ -114,16 +111,24 @@ static void MecanumCalculate()
     vt_rb = chassis_vx + chassis_vy - chassis_cmd_recv.wz * RB_CENTER;
 }
 
+// /**
+//  * @brief 计算每个轮毂电机的输出,正运动学解算
+//  *        用宏进行预替换减小开销,运动解算具体过程参考教程
+//  */
+// static void MecanumCalculate()
+// {
+//     vt_lf = -chassis_vx - chassis_vy - chassis_cmd_recv.wz * LF_CENTER;
+//     vt_rf = -chassis_vx + chassis_vy - chassis_cmd_recv.wz * RF_CENTER;
+//     vt_lb = chassis_vx - chassis_vy - chassis_cmd_recv.wz * LB_CENTER;
+//     vt_rb = chassis_vx + chassis_vy - chassis_cmd_recv.wz * RB_CENTER;
+// }
+
 /**
  * @brief 根据裁判系统和电容剩余容量对输出进行限制并设置电机参考值
  *
  */
 static void LimitChassisOutput()
 {
-    // 功率限制待添加
-    SetPowerLimit(referee_data->PowerHeatData.chassis_power > 0 ? referee_data->PowerHeatData.chassis_power : 40);
-    // referee_data->PowerHeatData.chassis_power_buffer;
-
     // 完成功率限制后进行电机参考输入设定
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
@@ -142,8 +147,8 @@ static void EstimateSpeed()
     vx = (motor_lf->measure.speed_aps - motor_rf->measure.speed_aps + motor_lb->measure.speed_aps - motor_rb->measure.speed_aps) / 4.0f / REDUCTION_RATIO_WHEEL / 360.0f * PERIMETER_WHEEL / 1000.0f / sqrt_2;
     vy = (-motor_lf->measure.speed_aps - motor_rf->measure.speed_aps + motor_lb->measure.speed_aps + motor_rb->measure.speed_aps) / 4.0f / REDUCTION_RATIO_WHEEL / 360.0f * PERIMETER_WHEEL / 1000.0f / sqrt_2;
     wz = (-motor_lf->measure.speed_aps - motor_rf->measure.speed_aps - motor_lb->measure.speed_aps - motor_rb->measure.speed_aps) / (LF_CENTER + RF_CENTER + LB_CENTER + RB_CENTER);
-    chassis_feedback_data.real_vx = vx * cos_theta - vy * sin_theta;
-    chassis_feedback_data.real_vy = +vx * sin_theta + vy * cos_theta;
+    chassis_feedback_data.real_vx = vx * cos_theta + vy * sin_theta;
+    chassis_feedback_data.real_vy = -vx * sin_theta + vy * cos_theta;
 }
 
 /* 机器人底盘控制核心任务 */
@@ -151,7 +156,7 @@ void ChassisTask()
 {
     SubGetMessage(chassis_sub, &chassis_cmd_recv);
 
-    SetPowerLimit(referee_data->GameRobotState.chassis_power_limit); //设置功率限制
+    SetPowerLimit(referee_data->PowerHeatData.chassis_power > 0 ? referee_data->PowerHeatData.chassis_power : 40);
     if (chassis_cmd_recv.chassis_mode == CHASSIS_ZERO_FORCE)
     {
         // 如果出现重要模块离线或遥控器设置为急停,让电机停止
@@ -193,7 +198,7 @@ void ChassisTask()
     chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
 
     // 根据控制模式进行正运动学解算,计算底盘输出
-    MecanumCalculate();
+    OmniCalculate();
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
     LimitChassisOutput();
