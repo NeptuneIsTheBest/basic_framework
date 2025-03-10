@@ -54,11 +54,11 @@ void UIDelete(referee_id_t *_id, uint8_t Del_Operate, uint8_t Del_Layer)
 		Graph_Color    图形颜色
 		Graph_Width    图形线宽
 		Start_x、Start_y  起点xy坐标
-		End_x、End_y   终点xy坐标
+		details_d、details_e   终点xy坐标
 **********************************************************************************************************/
 
-void UILineDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
-				uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t End_x, uint32_t End_y)
+void UILineDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+				uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t details_d, uint32_t details_e)
 {
 	int i;
 	for (i = 0; i < 3 && graphname[i] != '\0'; i++) // 填充至‘0’为止
@@ -67,18 +67,18 @@ void UILineDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, 
 	}
 
 	graph->operate_tpye = Graph_Operate;
-	graph->graphic_tpye = UI_Graph_Line;
+	graph->figure_tpye = UI_Graph_Line;
 	graph->layer = Graph_Layer;
 	graph->color = Graph_Color;
 
-	graph->start_angle = 0;
-	graph->end_angle = 0;
+	graph->details_a = 0;
+	graph->details_b = 0;
 	graph->width = Graph_Width;
 	graph->start_x = Start_x;
 	graph->start_y = Start_y;
-	graph->radius = 0;
-	graph->end_x = End_x;
-	graph->end_y = End_y;
+	graph->details_c = 0;
+	graph->details_d = details_d;
+	graph->details_e = details_e;
 }
 
 /************************************************绘制矩形*************************************************
@@ -89,10 +89,10 @@ void UILineDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, 
 		Graph_Color    图形颜色
 		Graph_Width    图形线宽
 		Start_x、Start_y    起点xy坐标
-		End_x、End_y        对角顶点xy坐标
+		details_d、details_e        对角顶点xy坐标
 **********************************************************************************************************/
-void UIRectangleDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
-					 uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t End_x, uint32_t End_y)
+void UIRectangleDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+					 uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t details_d, uint32_t details_e)
 {
 	int i;
 	for (i = 0; i < 3 && graphname[i] != '\0'; i++)
@@ -100,19 +100,19 @@ void UIRectangleDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Oper
 		graph->graphic_name[2 - i] = graphname[i];
 	}
 
-	graph->graphic_tpye = UI_Graph_Rectangle;
+	graph->figure_tpye = UI_Graph_Rectangle;
 	graph->operate_tpye = Graph_Operate;
 	graph->layer = Graph_Layer;
 	graph->color = Graph_Color;
 
-	graph->start_angle = 0;
-	graph->end_angle = 0;
+	graph->details_a = 0;
+	graph->details_b = 0;
 	graph->width = Graph_Width;
 	graph->start_x = Start_x;
 	graph->start_y = Start_y;
-	graph->radius = 0;
-	graph->end_x = End_x;
-	graph->end_y = End_y;
+	graph->details_c = 0;
+	graph->details_d = details_d;
+	graph->details_e = details_e;
 }
 
 /************************************************绘制整圆*************************************************
@@ -123,11 +123,11 @@ void UIRectangleDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Oper
 		Graph_Color    图形颜色
 		Graph_Width    图形线宽
 		Start_x、Start_y    圆心xy坐标
-		Graph_Radius  圆形半径
+		Graph_details_c  圆形半径
 **********************************************************************************************************/
 
-void UICircleDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
-				  uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t Graph_Radius)
+void UICircleDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+				  uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t Graph_details_c)
 {
 	int i;
 	for (i = 0; i < 3 && graphname[i] != '\0'; i++)
@@ -135,19 +135,19 @@ void UICircleDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate
 		graph->graphic_name[2 - i] = graphname[i];
 	}
 
-	graph->graphic_tpye = UI_Graph_Circle;
+	graph->figure_tpye = UI_Graph_Circle;
 	graph->operate_tpye = Graph_Operate;
 	graph->layer = Graph_Layer;
 	graph->color = Graph_Color;
 
-	graph->start_angle = 0;
-	graph->end_angle = 0;
+	graph->details_a = 0;
+	graph->details_b = 0;
 	graph->width = Graph_Width;
 	graph->start_x = Start_x;
 	graph->start_y = Start_y;
-	graph->radius = Graph_Radius;
-	graph->end_x = 0;
-	graph->end_y = 0;
+	graph->details_c = Graph_details_c;
+	graph->details_d = 0;
+	graph->details_e = 0;
 }
 /************************************************绘制椭圆*************************************************
 **参数：*graph Graph_Data类型变量指针，用于存放图形数据
@@ -157,10 +157,10 @@ void UICircleDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate
 		Graph_Color    图形颜色
 		Graph_Width    图形线宽
 		Start_x、Start_y    圆心xy坐标
-		End_x、End_y        xy半轴长度
+		details_d、details_e        xy半轴长度
 **********************************************************************************************************/
-void UIOvalDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
-				uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t end_x, uint32_t end_y)
+void UIOvalDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+				uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t details_d, uint32_t details_e)
 {
 	int i;
 	for (i = 0; i < 3 && graphname[i] != '\0'; i++)
@@ -168,20 +168,20 @@ void UIOvalDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, 
 		graph->graphic_name[2 - i] = graphname[i];
 	}
 
-	graph->graphic_tpye = UI_Graph_Ellipse;
+	graph->figure_tpye = UI_Graph_Ellipse;
 	graph->operate_tpye = Graph_Operate;
 	graph->layer = Graph_Layer;
 	graph->color = Graph_Color;
 	graph->width = Graph_Width;
 
-	graph->start_angle = 0;
-	graph->end_angle = 0;
+	graph->details_a = 0;
+	graph->details_b = 0;
 	graph->width = Graph_Width;
 	graph->start_x = Start_x;
 	graph->start_y = Start_y;
-	graph->radius = 0;
-	graph->end_x = end_x;
-	graph->end_y = end_y;
+	graph->details_c = 0;
+	graph->details_d = details_d;
+	graph->details_e = details_e;
 }
 
 /************************************************绘制圆弧*************************************************
@@ -196,9 +196,9 @@ void UIOvalDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, 
 		x_Length,y_Length   xy半轴长度
 **********************************************************************************************************/
 
-void UIArcDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+void UIArcDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
 			   uint32_t Graph_StartAngle, uint32_t Graph_EndAngle, uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y,
-			   uint32_t end_x, uint32_t end_y)
+			   uint32_t details_d, uint32_t details_e)
 {
 	int i;
 	for (i = 0; i < 3 && graphname[i] != '\0'; i++)
@@ -206,19 +206,19 @@ void UIArcDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, u
 		graph->graphic_name[2 - i] = graphname[i];
 	}
 
-	graph->graphic_tpye = UI_Graph_Arc;
+	graph->figure_tpye = UI_Graph_Arc;
 	graph->operate_tpye = Graph_Operate;
 	graph->layer = Graph_Layer;
 	graph->color = Graph_Color;
 
-	graph->start_angle = Graph_StartAngle;
-	graph->end_angle = Graph_EndAngle;
+	graph->details_a = Graph_StartAngle;
+	graph->details_b = Graph_EndAngle;
 	graph->width = Graph_Width;
 	graph->start_x = Start_x;
 	graph->start_y = Start_y;
-	graph->radius = 0;
-	graph->end_x = end_x;
-	graph->end_y = end_y;
+	graph->details_c = 0;
+	graph->details_d = details_d;
+	graph->details_e = details_e;
 }
 
 /************************************************绘制浮点型数据*************************************************
@@ -231,12 +231,12 @@ void UIArcDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, u
 		Graph_Digit    小数位数
 		Graph_Width    图形线宽
 		Start_x、Start_y    开始坐标
-		radius=a&0x3FF;   a为浮点数乘以1000后的32位整型数
-		end_x=(a>>10)&0x7FF;
-		end_y=(a>>21)&0x7FF;
+		details_c=a&0x3FF;   a为浮点数乘以1000后的32位整型数
+		details_d=(a>>10)&0x7FF;
+		details_e=(a>>21)&0x7FF;
 **********************************************************************************************************/
 
-void UIFloatDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+void UIFloatDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
 				 uint32_t Graph_Size, uint32_t Graph_Digit, uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, int32_t Graph_Float)
 {
 
@@ -245,7 +245,7 @@ void UIFloatDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate,
 	{
 		graph->graphic_name[2 - i] = graphname[i];
 	}
-	graph->graphic_tpye = UI_Graph_Float;
+	graph->figure_tpye = UI_Graph_Float;
 	graph->operate_tpye = Graph_Operate;
 	graph->layer = Graph_Layer;
 	graph->color = Graph_Color;
@@ -253,12 +253,12 @@ void UIFloatDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate,
 	graph->width = Graph_Width;
 	graph->start_x = Start_x;
 	graph->start_y = Start_y;
-	graph->start_angle = Graph_Size;
-	graph->end_angle = Graph_Digit;
+	graph->details_a = Graph_Size;
+	graph->details_b = Graph_Digit;
 
-	graph->radius = Graph_Float & 0x3FF;
-	graph->end_x = (Graph_Float >> 10) & 0x7FF;
-	graph->end_y = (Graph_Float >> 21) & 0x7FF;
+	graph->details_c = Graph_Float & 0x3FF;
+	graph->details_d = (Graph_Float >> 10) & 0x7FF;
+	graph->details_e = (Graph_Float >> 21) & 0x7FF;
 }
 
 /************************************************绘制整型数据*************************************************
@@ -270,11 +270,11 @@ void UIFloatDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate,
 		Graph_Size     字号
 		Graph_Width    图形线宽
 		Start_x、Start_y    开始坐标
-		radius=a&0x3FF;   a为32位整型数
-		end_x=(a>>10)&0x7FF;
-		end_y=(a>>21)&0x7FF;
+		details_c=a&0x3FF;   a为32位整型数
+		details_d=(a>>10)&0x7FF;
+		details_e=(a>>21)&0x7FF;
 **********************************************************************************************************/
-void UIIntDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+void UIIntDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
 			   uint32_t Graph_Size, uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, int32_t Graph_Integer)
 {
 	int i;
@@ -282,19 +282,19 @@ void UIIntDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, u
 	{
 		graph->graphic_name[2 - i] = graphname[i];
 	}
-	graph->graphic_tpye = UI_Graph_Int;
+	graph->figure_tpye = UI_Graph_Int;
 	graph->operate_tpye = Graph_Operate;
 	graph->layer = Graph_Layer;
 	graph->color = Graph_Color;
 
-	graph->start_angle = Graph_Size;
-	graph->end_angle = 0;
+	graph->details_a = Graph_Size;
+	graph->details_b = 0;
 	graph->width = Graph_Width;
 	graph->start_x = Start_x;
 	graph->start_y = Start_y;
-	graph->radius = Graph_Integer & 0x3FF;
-	graph->end_x = (Graph_Integer >> 10) & 0x7FF;
-	graph->end_y = (Graph_Integer >> 21) & 0x7FF;
+	graph->details_c = Graph_Integer & 0x3FF;
+	graph->details_d = (Graph_Integer >> 10) & 0x7FF;
+	graph->details_e = (Graph_Integer >> 21) & 0x7FF;
 }
 
 /************************************************绘制字符型数据*************************************************
@@ -320,7 +320,7 @@ void UICharDraw(String_Data_t *graph, char graphname[3], uint32_t Graph_Operate,
 		graph->Graph_Control.graphic_name[2 - i] = graphname[i];
 	}
 
-	graph->Graph_Control.graphic_tpye = UI_Graph_Char;
+	graph->Graph_Control.figure_tpye = UI_Graph_Char;
 	graph->Graph_Control.operate_tpye = Graph_Operate;
 	graph->Graph_Control.layer = Graph_Layer;
 	graph->Graph_Control.color = Graph_Color;
@@ -328,16 +328,16 @@ void UICharDraw(String_Data_t *graph, char graphname[3], uint32_t Graph_Operate,
 	graph->Graph_Control.width = Graph_Width;
 	graph->Graph_Control.start_x = Start_x;
 	graph->Graph_Control.start_y = Start_y;
-	graph->Graph_Control.start_angle = Graph_Size;
-	graph->Graph_Control.radius = 0;
-	graph->Graph_Control.end_x = 0;
-	graph->Graph_Control.end_y = 0;
+	graph->Graph_Control.details_a = Graph_Size;
+	graph->Graph_Control.details_c = 0;
+	graph->Graph_Control.details_d = 0;
+	graph->Graph_Control.details_e = 0;
 
 	va_list ap;
 	va_start(ap, fmt);
 	vsprintf((char *)graph->show_Data, fmt, ap); // 使用参数列表进行格式化并输出到字符串
 	va_end(ap);
-	graph->Graph_Control.end_angle = strlen((const char *)graph->show_Data);
+	graph->Graph_Control.details_b = strlen((const char *)graph->show_Data);
 }
 
 /* UI推送函数（使更改生效）
@@ -348,7 +348,7 @@ void UICharDraw(String_Data_t *graph, char graphname[3], uint32_t Graph_Operate,
 void UIGraphRefresh(referee_id_t *_id, int cnt, ...)
 {
 	UI_GraphReFresh_t UI_GraphReFresh_data;
-	Graph_Data_t graphData;
+	interaction_figure_t graphData;
 
 	uint8_t temp_datalength = LEN_HEADER + LEN_CMDID + Interactive_Data_LEN_Head + UI_Operate_LEN_PerDraw * cnt + LEN_TAIL; // 计算交互数据长度
 
@@ -386,7 +386,7 @@ void UIGraphRefresh(referee_id_t *_id, int cnt, ...)
 
 	for (uint8_t i = 0; i < cnt; i++) // 发送交互数据的数据帧，并计算CRC16校验值
 	{
-		graphData = va_arg(ap, Graph_Data_t); // 访问参数列表中的每个项,第二个参数是你要返回的参数的类型,在取值时需要将其强制转化为指定类型的变量
+		graphData = va_arg(ap, interaction_figure_t); // 访问参数列表中的每个项,第二个参数是你要返回的参数的类型,在取值时需要将其强制转化为指定类型的变量
 		memcpy(buffer + (LEN_HEADER + LEN_CMDID + Interactive_Data_LEN_Head + UI_Operate_LEN_PerDraw * i), (uint8_t *)&graphData, UI_Operate_LEN_PerDraw);
 	}
 	Append_CRC16_Check_Sum(buffer, temp_datalength);

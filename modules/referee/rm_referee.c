@@ -46,7 +46,7 @@ static void JudgeReadData(uint8_t *buff)
 		if (Verify_CRC8_Check_Sum(buff, LEN_HEADER) == TRUE)
 		{
 			// 统计一帧数据长度(byte),用于CR16校验
-			judge_length = buff[DATA_LENGTH] + LEN_HEADER + LEN_CMDID + LEN_TAIL;
+			judge_length = referee_info.FrameHeader.DataLength + LEN_HEADER + LEN_CMDID + LEN_TAIL;//buff[DATA_LENGTH]
 			// 帧尾CRC16校验
 			if (Verify_CRC16_Check_Sum(buff, judge_length) == TRUE)
 			{
@@ -63,7 +63,7 @@ static void JudgeReadData(uint8_t *buff)
 					memcpy(&referee_info.GameResult, (buff + DATA_Offset), LEN_game_result);
 					break;
 				case ID_game_robot_survivors: // 0x0003
-					memcpy(&referee_info.GameRobotHP, (buff + DATA_Offset), LEN_game_robot_HP);
+					memcpy(&referee_info.GameRobotHP, (buff + DATA_Offset), LEN_game_robot_survivors);
 					break;
 				case ID_event_data: // 0x0101
 					memcpy(&referee_info.EventData, (buff + DATA_Offset), LEN_event_data);
@@ -71,8 +71,8 @@ static void JudgeReadData(uint8_t *buff)
 				case ID_supply_projectile_action: // 0x0102
 					memcpy(&referee_info.SupplyProjectileAction, (buff + DATA_Offset), LEN_supply_projectile_action);
 					break;
-				case ID_game_robot_state: // 0x0201
-					memcpy(&referee_info.GameRobotState, (buff + DATA_Offset), LEN_game_robot_state);
+				case ID_robot_status_t: // 0x0201
+					memcpy(&referee_info.GameRobotState, (buff + DATA_Offset), LEN_robot_status_t);
 					break;
 				case ID_power_heat_data: // 0x0202
 					memcpy(&referee_info.PowerHeatData, (buff + DATA_Offset), LEN_power_heat_data);
@@ -80,11 +80,11 @@ static void JudgeReadData(uint8_t *buff)
 				case ID_game_robot_pos: // 0x0203
 					memcpy(&referee_info.GameRobotPos, (buff + DATA_Offset), LEN_game_robot_pos);
 					break;
-				case ID_buff_musk: // 0x0204
-					memcpy(&referee_info.BuffMusk, (buff + DATA_Offset), LEN_buff_musk);
+				case ID_buff_t: // 0x0204
+					memcpy(&referee_info.BuffMusk, (buff + DATA_Offset), LEN_buff_t);
 					break;
-				case ID_aerial_robot_energy: // 0x0205
-					memcpy(&referee_info.AerialRobotEnergy, (buff + DATA_Offset), LEN_aerial_robot_energy);
+				case ID_air_support_data_t: // 0x0205
+					memcpy(&referee_info.AerialRobotEnergy, (buff + DATA_Offset), LEN_air_support_data_t);
 					break;
 				case ID_robot_hurt: // 0x0206
 					memcpy(&referee_info.RobotHurt, (buff + DATA_Offset), LEN_robot_hurt);
@@ -92,8 +92,29 @@ static void JudgeReadData(uint8_t *buff)
 				case ID_shoot_data: // 0x0207
 					memcpy(&referee_info.ShootData, (buff + DATA_Offset), LEN_shoot_data);
 					break;
-				case ID_student_interactive: // 0x0301   syhtodo接收代码未测试
-					memcpy(&referee_info.ReceiveData, (buff + DATA_Offset), LEN_receive_data);
+                case ID_projectile_allowance: // 0x0208
+                    memcpy(&referee_info.AllowanceProjectile, (buff + DATA_Offset), LEN_projectile_allowance);
+                     break;
+                case ID_rfid_status_t: // 0x0209
+                    memcpy(&referee_info.RfidStatus, (buff + DATA_Offset), LEN_rfid_status_t);
+                    break;
+                case ID_darts_client_cmd: // 0x020A
+                    memcpy(&referee_info.DartClient, (buff + DATA_Offset), LEN_darts_client_cmd);
+                    break;
+                case ID_ground_robot_position_t: // 0x020B
+                    memcpy(&referee_info.RobotPostion, (buff + DATA_Offset), LEN_ground_robot_position_t);
+                    break;
+                case ID_radar_mark_data_t: // 0x020C
+                    memcpy(&referee_info.RadarMark, (buff + DATA_Offset), LEN_radar_mark_data_t);
+                    break;
+                case ID_sentry_info_t: // 0x020D
+                    memcpy(&referee_info.SentryInfo, (buff + DATA_Offset), LEN_sentry_info_t);
+                    break;
+                case ID_radar_info_t: // 0x020E
+                    memcpy(&referee_info.RadarInfo, (buff + DATA_Offset), LEN_radar_info_t);
+                    break;
+                case ID_student_interactive: // 0x0301   syhtodo接收代码未测试
+					memcpy(&referee_info.ReceiveData, (buff + DATA_Offset), LEN_student_interactive);
 					break;
 				}
 			}

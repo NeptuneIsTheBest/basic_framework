@@ -13,7 +13,7 @@ typedef struct
 {
    xFrameHeader FrameHeader;
    uint16_t CmdID;
-   ext_student_interactive_header_data_t datahead;
+   ext_robot_interaction_data_t datahead;
    uint8_t Delete_Operate; // 删除操作
    uint8_t Layer;
    uint16_t frametail;
@@ -23,7 +23,7 @@ typedef struct
 {
    xFrameHeader FrameHeader;
    uint16_t CmdID;
-   ext_student_interactive_header_data_t datahead;
+   ext_robot_interaction_data_t datahead;
    uint16_t frametail;
 } UI_GraphReFresh_t;
 
@@ -31,7 +31,7 @@ typedef struct
 {
    xFrameHeader FrameHeader;
    uint16_t CmdID;
-   ext_student_interactive_header_data_t datahead;
+   ext_robot_interaction_data_t datahead;
    String_Data_t String_Data;
    uint16_t frametail;
 } UI_CharReFresh_t; // 打印字符串数据
@@ -40,26 +40,26 @@ typedef struct
 
 void UIDelete(referee_id_t *_id, uint8_t Del_Operate, uint8_t Del_Layer);
 
-void UILineDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+void UILineDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
                 uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t End_x, uint32_t End_y);
 
-void UIRectangleDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+void UIRectangleDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
                      uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t End_x, uint32_t End_y);
 
-void UICircleDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+void UICircleDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
                   uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t Graph_Radius);
 
-void UIOvalDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+void UIOvalDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
                 uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, uint32_t end_x, uint32_t end_y);
 
-void UIArcDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+void UIArcDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
                uint32_t Graph_StartAngle, uint32_t Graph_EndAngle, uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y,
                uint32_t end_x, uint32_t end_y);
 
-void UIFloatDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+void UIFloatDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
                  uint32_t Graph_Size, uint32_t Graph_Digit, uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, int32_t Graph_Float);
 
-void UIIntDraw(Graph_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
+void UIIntDraw(interaction_figure_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,
                uint32_t Graph_Size, uint32_t Graph_Width, uint32_t Start_x, uint32_t Start_y, int32_t Graph_Integer);
 
 void UICharDraw(String_Data_t *graph, char graphname[3], uint32_t Graph_Operate, uint32_t Graph_Layer, uint32_t Graph_Color,

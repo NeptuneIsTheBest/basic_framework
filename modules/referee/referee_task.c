@@ -14,7 +14,7 @@
 #include "referee_UI.h"
 #include "string.h"
 #include "cmsis_os.h"
-
+#include "referee_protocol.h"
 static Referee_Interactive_info_t *Interactive_data; // UI绘制需要的机器人状态数据
 static referee_info_t *referee_recv_info;            // 接收到的裁判系统数据
 uint8_t UI_Seq;                                      // 包序号，供整个referee文件使用
@@ -51,8 +51,8 @@ void UITask() {
     MyUIRefresh(referee_recv_info, Interactive_data);
 }
 
-static Graph_Data_t UI_shoot_line[10]; // 射击准线
-static Graph_Data_t UI_Energy[3];      // 电容能量条
+static interaction_figure_t UI_shoot_line[10]; // 射击准线
+static interaction_figure_t UI_Energy[3];      // 电容能量条
 static String_Data_t UI_State_sta[6];  // 机器人状态,静态只需画一次
 static String_Data_t UI_State_dyn[6];  // 机器人状态,动态先add才能change
 static uint32_t shoot_line_location[10] = {540, 960, 490, 515, 565};
