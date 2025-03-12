@@ -87,11 +87,13 @@ static void CalcOffsetAngle()
  */
 static void RemoteControlSet()
 {
-    // 云台参数, 遥控器[左]侧开关确定云台控制数据 周期执行该函数 只可将初始状态放这
+    // 云台参数, 遥控器[左]侧开关确定云台控制数据 **********周期执行该函数 只可将初始状态放这**********
     chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
     gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
 
-
+    shoot_cmd_send.bullet_speed=SMALL_AMU_15;//default in switch start
+    shoot_cmd_send.shoot_rate=100;//若为0拨弹盘设置为0
+    //根据实际调整上两参数，调试用
 
     // 遥控器[左]侧开关在[上]，遥控器控制云台
     gimbal_cmd_send.yaw -= 0.005f * (float)rc_data[TEMP].rc.rocker_l_;
@@ -110,16 +112,13 @@ static void RemoteControlSet()
             gimbal_cmd_send.yaw = vision_recv_data->yaw;
             gimbal_cmd_send.pitch = vision_recv_data->pitch;
         }
-
-
         if (switch_is_down(rc_data[TEMP].rc.switch_left))
         {
             // 开！
             shoot_cmd_send.shoot_mode= SHOOT_ON;
             shoot_cmd_send.friction_mode = FRICTION_ON;
             shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
-            shoot_cmd_send.bullet_speed=SMALL_AMU_15;//default in switch start
-            shoot_cmd_send.shoot_rate=100;//若为0拨弹盘设置为0
+
         }
         else if (switch_is_mid(rc_data[TEMP].rc.switch_left))
         {
@@ -128,19 +127,14 @@ static void RemoteControlSet()
             shoot_cmd_send.friction_mode = FRICTION_OFF;
             shoot_cmd_send.load_mode = LOAD_STOP;
             shoot_cmd_send.shoot_mode= SHOOT_OFF;
-
         }
-
         if(rc_data[TEMP].rc.dial>400||rc_data[TEMP].rc.dial<-400){
             chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
         }
         else {
             chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
         }
-
-
     }
-
 }
 
 /**
@@ -151,13 +145,25 @@ static void MouseKeyControlSet()
 {
     chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
     gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
+    shoot_cmd_send.shoot_mode= SHOOT_ON;
+    shoot_cmd_send.bullet_speed=SMALL_AMU_15;//default in switch start
+    shoot_cmd_send.shoot_rate=100;//若为0拨弹盘设置为0
+    //根据实际调整上两参数，调试用
 
     // 底盘和云台控制可能需要添加系数
-    chassis_cmd_send.vx = (float)(rc_data[TEMP].key[KEY_PRESS].a - rc_data[TEMP].key[KEY_PRESS].d);
-    chassis_cmd_send.vy = (float)(rc_data[TEMP].key[KEY_PRESS].w - rc_data[TEMP].key[KEY_PRESS].s);
-    gimbal_cmd_send.yaw -= (float)rc_data[TEMP].mouse.x * 0.005f;
-    gimbal_cmd_send.pitch -= (float)rc_data[TEMP].mouse.y * 0.001f;
+    /************************* chassis&gimbal ************************/
+    chassis_cmd_send.vx = (float)((rc_data[TEMP].key[KEY_PRESS].a - rc_data[TEMP].key[KEY_PRESS].d)*(25*chassis_remote_ratio * 660));
+    chassis_cmd_send.vy = (float)((rc_data[TEMP].key[KEY_PRESS].w - rc_data[TEMP].key[KEY_PRESS].s)*(25*chassis_remote_ratio * 660));
+    gimbal_cmd_send.yaw -= (float)rc_data[TEMP].mouse.x * 0.05f;
+    gimbal_cmd_send.pitch -= (float)rc_data[TEMP].mouse.y * 0.01f;
 
+    if(rc_data[TEMP].key[KEY_PRESS].q){
+        chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+    }
+    else {
+        chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
+    }
+    /************************* auto_aim ************************/
     if (rc_data[TEMP].mouse.press_r)
     {
         // 按住鼠标右键，视觉控制云台
@@ -167,7 +173,7 @@ static void MouseKeyControlSet()
             gimbal_cmd_send.pitch = vision_recv_data->pitch;
         }
     }
-
+    /************************* 摩擦轮 ************************/
     switch (rc_data[TEMP].key_count[KEY_PRESS][Key_F] % 2)
     {
     // F键开关摩擦轮
@@ -178,7 +184,7 @@ static void MouseKeyControlSet()
         shoot_cmd_send.friction_mode = FRICTION_ON;
         break;
     }
-
+    /************************* shift aim_mode ************************/
     switch (rc_data[TEMP].key_count[KEY_PRESS][Key_X] % 2)
     {
     // X切换自瞄射击模式，
@@ -188,8 +194,8 @@ static void MouseKeyControlSet()
     default:
         vision_recv_data->fire_mode = AUTO_FIRE;
         break;
-    }
-
+        }
+    /************************* load(constrain:friction on) ************************/ //自瞄部分逻辑待调整
     if (shoot_cmd_send.friction_mode == FRICTION_ON)
     {
         // 左键单击
@@ -205,13 +211,13 @@ static void MouseKeyControlSet()
             }
             else
             {
-                if (vision_recv_data->fire_mode == AUTO_AIM)
+                if (vision_recv_data->fire_mode == AUTO_AIM)//自瞄单发  打符||精确射击
                 {
                     shoot_cmd_send.load_mode = LOAD_1_BULLET;
                 }
-                else if (vision_recv_data->fire_mode == AUTO_FIRE)
+                else if (vision_recv_data->fire_mode == AUTO_FIRE)//自瞄连射 长摁
                 {
-                    shoot_cmd_send.load_mode = vision_recv_data->target_state == READY_TO_FIRE ? LOAD_1_BULLET : LOAD_STOP;
+                    shoot_cmd_send.load_mode = vision_recv_data->target_state == READY_TO_FIRE ? LOAD_BURSTFIRE : LOAD_STOP;
                 }
             }
             break;
@@ -221,7 +227,7 @@ static void MouseKeyControlSet()
     {
         shoot_cmd_send.load_mode = LOAD_STOP;
     }
-
+    /**************************超级电容 shift 加速*************************/
     if (rc_data[TEMP].key[KEY_PRESS].shift)
     {
         chassis_cmd_send.vx *= chassis_power_buffer;
