@@ -108,9 +108,9 @@ void ChassisInit()
  */
 static void MecanumCalculate()
 {
-    vt_lf = -(float)((+chassis_vx - chassis_vy + chassis_cmd_recv.wz * LF_CENTER)/RADIUS_WHEEL);//w1
+    vt_lf = -(float)((+chassis_vx - chassis_vy + chassis_cmd_recv.wz * LF_CENTER)/RADIUS_WHEEL);//w1 取反
     vt_lb = (float)((+chassis_vx + chassis_vy - chassis_cmd_recv.wz * LB_CENTER)/RADIUS_WHEEL);//w2
-    vt_rb = (float)((+chassis_vx - chassis_vy - chassis_cmd_recv.wz * RB_CENTER)/RADIUS_WHEEL);//w3
+    vt_rb = (float)((+chassis_vx - chassis_vy - chassis_cmd_recv.wz * RB_CENTER)/RADIUS_WHEEL);//w3 取反
     vt_rf = -(float)((+chassis_vx + chassis_vy + chassis_cmd_recv.wz * RF_CENTER)/RADIUS_WHEEL);//w4
 }
 
@@ -121,7 +121,7 @@ static void MecanumCalculate()
 static void LimitChassisOutput()
 {
     // 功率限制待添加
-    //SetPowerLimit(referee_data->PowerHeatData.chassis_power > 0 ? referee_data->PowerHeatData.chassis_power : 60);
+    SetPowerLimit(referee_data->PowerHeatData.chassis_power > 0 ? referee_data->PowerHeatData.chassis_power : 60);
     // referee_data->PowerHeatData.chassis_power_buffer;
 
     // 完成功率限制后进行电机参考输入设定
@@ -152,7 +152,7 @@ void ChassisTask()
 {
     SubGetMessage(chassis_sub, &chassis_cmd_recv);
 
-    SetPowerLimit(referee_data->GameRobotState.chassis_power_limit); //设置功率限制
+    SetPowerLimit(referee_data->PowerHeatData.chassis_power > 0 ? referee_data->PowerHeatData.chassis_power : 40);
     if (chassis_cmd_recv.chassis_mode == CHASSIS_ZERO_FORCE)
     {
         // 如果出现重要模块离线或遥控器设置为急停,让电机停止

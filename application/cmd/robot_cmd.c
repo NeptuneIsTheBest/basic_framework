@@ -87,21 +87,22 @@ static void CalcOffsetAngle()
  */
 static void RemoteControlSet()
 {
-    // 云台参数, 遥控器[左]侧开关确定云台控制数据
-    chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+    // 云台参数, 遥控器[左]侧开关确定云台控制数据 周期执行该函数 只可将初始状态放这
+    chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
     gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
 
-    shoot_cmd_send.friction_mode = FRICTION_OFF;
-    shoot_cmd_send.load_mode = LOAD_STOP;
+
 
     // 遥控器[左]侧开关在[上]，遥控器控制云台
     gimbal_cmd_send.yaw -= 0.005f * (float)rc_data[TEMP].rc.rocker_l_;
     gimbal_cmd_send.pitch -= 0.001f * (float)rc_data[TEMP].rc.rocker_l1;
 
-    chassis_cmd_send.vx = chassis_remote_ratio * (float)rc_data[TEMP].rc.rocker_r_;
-    chassis_cmd_send.vy = chassis_remote_ratio * (float)rc_data[TEMP].rc.rocker_r1;
+    chassis_cmd_send.vx = (float)-(50*chassis_remote_ratio * (float)rc_data[TEMP].rc.rocker_r_);
+    chassis_cmd_send.vy = (float)(50*chassis_remote_ratio * (float)rc_data[TEMP].rc.rocker_r1);
+
+
     // 遥控器[左]侧开关在[中]，视觉控制云台移动
-    if (switch_is_mid(rc_data[TEMP].rc.switch_left))
+    if (switch_is_mid(rc_data[TEMP].rc.switch_left)||switch_is_down(rc_data[TEMP].rc.switch_left))
     {
         if (vision_recv_data->target_state != NO_TARGET)
         {
@@ -109,13 +110,37 @@ static void RemoteControlSet()
             gimbal_cmd_send.yaw = vision_recv_data->yaw;
             gimbal_cmd_send.pitch = vision_recv_data->pitch;
         }
+
+
+        if (switch_is_down(rc_data[TEMP].rc.switch_left))
+        {
+            // 开！
+            shoot_cmd_send.shoot_mode= SHOOT_ON;
+            shoot_cmd_send.friction_mode = FRICTION_ON;
+            shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
+            shoot_cmd_send.bullet_speed=SMALL_AMU_15;//default in switch start
+            shoot_cmd_send.shoot_rate=100;//若为0拨弹盘设置为0
+        }
+        else if (switch_is_mid(rc_data[TEMP].rc.switch_left))
+        {
+            // 关！
+            shoot_cmd_send.bullet_speed=BULLET_SPEED_NONE;
+            shoot_cmd_send.friction_mode = FRICTION_OFF;
+            shoot_cmd_send.load_mode = LOAD_STOP;
+            shoot_cmd_send.shoot_mode= SHOOT_OFF;
+
+        }
+
+        if(rc_data[TEMP].rc.dial>400||rc_data[TEMP].rc.dial<-400){
+            chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+        }
+        else {
+            chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
+        }
+
+
     }
-    else if (switch_is_down(rc_data[TEMP].rc.switch_left))
-    {
-        // 开！
-        shoot_cmd_send.friction_mode = FRICTION_ON;
-        shoot_cmd_send.load_mode = LOAD_1_BULLET;
-    }
+
 }
 
 /**
@@ -124,7 +149,7 @@ static void RemoteControlSet()
  */
 static void MouseKeyControlSet()
 {
-    chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+    chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
     gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
 
     // 底盘和云台控制可能需要添加系数

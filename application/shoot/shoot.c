@@ -20,14 +20,14 @@ static float hibernate_time = 0, dead_time = 0;
 
 void ShootInit()
 {
-    // 左摩擦轮
+    // 左摩擦轮 预测id为对应id号在底层已处理 无需关心标识符等，现象正确，但待证实
     Motor_Init_Config_s friction_config = {
         .can_init_config = {
             .can_handle = &hcan2,
         },
         .controller_param_init_config = {
             .speed_PID = {
-                .Kp = 0, // 20
+                .Kp = 20, // 20
                 .Ki = 0, // 1
                 .Kd = 0,
                 .Improve = PID_Integral_Limit,
@@ -35,7 +35,7 @@ void ShootInit()
                 .MaxOut = 15000,
             },
             .current_PID = {
-                .Kp = 0, // 0.7
+                .Kp = 0.7, // 0.7
                 .Ki = 0, // 0.1
                 .Kd = 0,
                 .Improve = PID_Integral_Limit,
@@ -53,10 +53,10 @@ void ShootInit()
         },
         .motor_type = M3508
     };
-    friction_config.can_init_config.tx_id = 1,
+    friction_config.can_init_config.tx_id = 5,
         friction_l = DJIMotorInit(&friction_config);
 
-    friction_config.can_init_config.tx_id = 2; // 右摩擦轮,改txid和方向就行
+    friction_config.can_init_config.tx_id = 6; // 右摩擦轮,改txid和方向就行
     friction_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
     friction_r = DJIMotorInit(&friction_config);
 
@@ -64,18 +64,18 @@ void ShootInit()
     Motor_Init_Config_s loader_config = {
         .can_init_config = {
             .can_handle = &hcan2,
-            .tx_id = 3,
+            .tx_id = 7,
         },
         .controller_param_init_config = {
             .angle_PID = {
                 // 如果启用位置环来控制发弹,需要较大的I值保证输出力矩的线性度否则出现接近拨出的力矩大幅下降
-                .Kp = 0, // 10
+                .Kp = 10, // 10
                 .Ki = 0,
                 .Kd = 0,
                 .MaxOut = 200,
             },
             .speed_PID = {
-                .Kp = 0, // 10
+                .Kp = 10, // 10
                 .Ki = 0, // 1
                 .Kd = 0,
                 .Improve = PID_Integral_Limit,
@@ -83,7 +83,7 @@ void ShootInit()
                 .MaxOut = 5000,
             },
             .current_PID = {
-                .Kp = 0, // 0.7
+                .Kp = 0.7, // 0.7
                 .Ki = 0, // 0.1
                 .Kd = 0,
                 .Improve = PID_Integral_Limit,
@@ -175,20 +175,20 @@ void ShootTask()
         switch (shoot_cmd_recv.bullet_speed)
         {
         case SMALL_AMU_15:
-            DJIMotorSetRef(friction_l, 0);
-            DJIMotorSetRef(friction_r, 0);
+            DJIMotorSetRef(friction_l, 4000);
+            DJIMotorSetRef(friction_r, 4000);
             break;
         case SMALL_AMU_18:
-            DJIMotorSetRef(friction_l, 0);
-            DJIMotorSetRef(friction_r, 0);
+            DJIMotorSetRef(friction_l, 400);
+            DJIMotorSetRef(friction_r, 400);
             break;
         case SMALL_AMU_30:
-            DJIMotorSetRef(friction_l, 0);
-            DJIMotorSetRef(friction_r, 0);
+            DJIMotorSetRef(friction_l, 400);
+            DJIMotorSetRef(friction_r, 400);
             break;
         default: // 当前为了调试设定的默认值4000,因为还没有加入裁判系统无法读取弹速.
-            DJIMotorSetRef(friction_l, 30000);
-            DJIMotorSetRef(friction_r, 30000);
+            DJIMotorSetRef(friction_l, 0);
+            DJIMotorSetRef(friction_r, 0);
             break;
         }
     }

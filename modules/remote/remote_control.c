@@ -56,7 +56,7 @@ static void sbus_to_rc(const uint8_t* sbus_buf)
 
     //  位域的按键值解算,直接memcpy即可,注意小端低字节在前,即lsb在第一位,msb在最后
     *(uint16_t*)&rc_ctrl[TEMP].key[KEY_PRESS] = (uint16_t)(sbus_buf[14] | (sbus_buf[15] << 8));
-    if (rc_ctrl[TEMP].key[KEY_PRESS].ctrl) // ctrl键按下
+    if (rc_ctrl[TEMP].key[KEY_PRESS].ctrl) // ctrl键按下，则将当前遥控器数据按键相关更新至KEY_PRESS_WITH_CTRL 否则清零 下同
         rc_ctrl[TEMP].key[KEY_PRESS_WITH_CTRL] = rc_ctrl[TEMP].key[KEY_PRESS];
     else
         memset(&rc_ctrl[TEMP].key[KEY_PRESS_WITH_CTRL], 0, sizeof(Key_t));
@@ -72,7 +72,7 @@ static void sbus_to_rc(const uint8_t* sbus_buf)
              key_last_with_ctrl = rc_ctrl[LAST].key[KEY_PRESS_WITH_CTRL].keys, // 上一次ctrl组合键是否按下
              key_last_with_shift = rc_ctrl[LAST].key[KEY_PRESS_WITH_SHIFT].keys; // 上一次shift组合键是否按下
 
-    for (uint16_t i = 0, j = 0x1; i < 16; j <<= 1, i++)
+    for (uint16_t i = 0, j = 0x1; i < 16; j <<= 1, i++)//位运算遍历key 数组 每一位
     {
         if (i == 4 || i == 5) // 4,5位为ctrl和shift,直接跳过
             continue;
