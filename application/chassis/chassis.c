@@ -30,12 +30,12 @@
 #define sqrt_2 1.41421356237f                   // 根号2
 
 /* 底盘应用包含的模块和信息存储,底盘是单例模式,因此不需要为底盘建立单独的结构体 */
-static Publisher_t* chassis_pub; // 用于发布底盘的数据
-static Subscriber_t* chassis_sub; // 用于订阅底盘的控制命令
+static Publisher_t *chassis_pub; // 用于发布底盘的数据
+static Subscriber_t *chassis_sub; // 用于订阅底盘的控制命令
 static Chassis_Ctrl_Cmd_s chassis_cmd_recv; // 底盘接收到的控制命令
 static Chassis_Upload_Data_s chassis_feedback_data; // 底盘回传的反馈数据
 
-static referee_info_t* referee_data; // 用于获取裁判系统的数据
+static referee_info_t *referee_data; // 用于获取裁判系统的数据
 static Referee_Interactive_info_t ui_data; // UI数据，将底盘中的数据传入此结构体的对应变量中，UI会自动检测是否变化，对应显示UI
 
 static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left right forward back
@@ -49,8 +49,7 @@ static float vt_lf, vt_rf, vt_lb, vt_rb; // 底盘速度解算后的临时输出
 static float sin_theta, cos_theta;
 static float vx, vy, wz;
 
-void ChassisInit()
-{
+void ChassisInit() {
     // 四个轮子的参数一样,改tx_id和反转标志位即可
     Motor_Init_Config_s chassis_motor_config = {
         .can_init_config.can_handle = &hcan1,
@@ -103,32 +102,34 @@ void ChassisInit()
 #define LB_CENTER ((HALF_TRACK_WIDTH + CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE + CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
 #define RB_CENTER ((HALF_TRACK_WIDTH - CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE + CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
 
-static void OmniCalculate()
+#if defined(CHASSIS_TYPE_OMNI)
+static void OmniCalculate() {
+    vt_lf = -chassis_vx - chassis_vy - chassis_cmd_recv.wz * LF_CENTER;
+    vt_rf = -chassis_vx + chassis_vy - chassis_cmd_recv.wz * RF_CENTER;
+    vt_lb = chassis_vx - chassis_vy - chassis_cmd_recv.wz * LB_CENTER;
+    vt_rb = chassis_vx + chassis_vy - chassis_cmd_recv.wz * RB_CENTER;
+}
+#endif
+
+/**
+ * @brief 计算每个轮毂电机的输出,正运动学解算
+ *        用宏进行预替换减小开销,运动解算具体过程参考教程
+ */
+#if defined(CHASSIS_TYPE_MECANUM)
+static void MecanumCalculate()
 {
     vt_lf = -chassis_vx - chassis_vy - chassis_cmd_recv.wz * LF_CENTER;
     vt_rf = -chassis_vx + chassis_vy - chassis_cmd_recv.wz * RF_CENTER;
     vt_lb = chassis_vx - chassis_vy - chassis_cmd_recv.wz * LB_CENTER;
     vt_rb = chassis_vx + chassis_vy - chassis_cmd_recv.wz * RB_CENTER;
 }
-
-// /**
-//  * @brief 计算每个轮毂电机的输出,正运动学解算
-//  *        用宏进行预替换减小开销,运动解算具体过程参考教程
-//  */
-// static void MecanumCalculate()
-// {
-//     vt_lf = -chassis_vx - chassis_vy - chassis_cmd_recv.wz * LF_CENTER;
-//     vt_rf = -chassis_vx + chassis_vy - chassis_cmd_recv.wz * RF_CENTER;
-//     vt_lb = chassis_vx - chassis_vy - chassis_cmd_recv.wz * LB_CENTER;
-//     vt_rb = chassis_vx + chassis_vy - chassis_cmd_recv.wz * RB_CENTER;
-// }
+#endif
 
 /**
  * @brief 根据裁判系统和电容剩余容量对输出进行限制并设置电机参考值
  *
  */
-static void LimitChassisOutput()
-{
+static void LimitChassisOutput() {
     // 完成功率限制后进行电机参考输入设定
     DJIMotorSetRef(motor_lf, vt_lf);
     DJIMotorSetRef(motor_rf, vt_rf);
@@ -141,32 +142,30 @@ static void LimitChassisOutput()
  *        对于双板的情况,考虑增加来自底盘板IMU的数据
  *
  */
-static void EstimateSpeed()
-{
+static void EstimateSpeed() {
     // 根据电机速度和陀螺仪的角速度进行解算,还可以利用加速度计判断是否打滑(如果有)
-    vx = (motor_lf->measure.speed_aps - motor_rf->measure.speed_aps + motor_lb->measure.speed_aps - motor_rb->measure.speed_aps) / 4.0f / REDUCTION_RATIO_WHEEL / 360.0f * PERIMETER_WHEEL / 1000.0f / sqrt_2;
-    vy = (-motor_lf->measure.speed_aps - motor_rf->measure.speed_aps + motor_lb->measure.speed_aps + motor_rb->measure.speed_aps) / 4.0f / REDUCTION_RATIO_WHEEL / 360.0f * PERIMETER_WHEEL / 1000.0f / sqrt_2;
-    wz = (-motor_lf->measure.speed_aps - motor_rf->measure.speed_aps - motor_lb->measure.speed_aps - motor_rb->measure.speed_aps) / (LF_CENTER + RF_CENTER + LB_CENTER + RB_CENTER);
+    vx = (motor_lf->measure.speed_aps - motor_rf->measure.speed_aps + motor_lb->measure.speed_aps - motor_rb->measure.
+          speed_aps) / 4.0f / REDUCTION_RATIO_WHEEL / 360.0f * PERIMETER_WHEEL / 1000.0f / sqrt_2;
+    vy = (-motor_lf->measure.speed_aps - motor_rf->measure.speed_aps + motor_lb->measure.speed_aps + motor_rb->measure.
+          speed_aps) / 4.0f / REDUCTION_RATIO_WHEEL / 360.0f * PERIMETER_WHEEL / 1000.0f / sqrt_2;
+    wz = (-motor_lf->measure.speed_aps - motor_rf->measure.speed_aps - motor_lb->measure.speed_aps - motor_rb->measure.
+          speed_aps) / (LF_CENTER + RF_CENTER + LB_CENTER + RB_CENTER);
     chassis_feedback_data.real_vx = vx * cos_theta + vy * sin_theta;
     chassis_feedback_data.real_vy = -vx * sin_theta + vy * cos_theta;
 }
 
 /* 机器人底盘控制核心任务 */
-void ChassisTask()
-{
+void ChassisTask() {
     SubGetMessage(chassis_sub, &chassis_cmd_recv);
 
     SetPowerLimit(referee_data->PowerHeatData.chassis_power > 0 ? referee_data->PowerHeatData.chassis_power : 40);
-    if (chassis_cmd_recv.chassis_mode == CHASSIS_ZERO_FORCE)
-    {
+    if (chassis_cmd_recv.chassis_mode == CHASSIS_ZERO_FORCE) {
         // 如果出现重要模块离线或遥控器设置为急停,让电机停止
         DJIMotorStop(motor_lf);
         DJIMotorStop(motor_rf);
         DJIMotorStop(motor_lb);
         DJIMotorStop(motor_rb);
-    }
-    else
-    {
+    } else {
         // 正常工作
         DJIMotorEnable(motor_lf);
         DJIMotorEnable(motor_rf);
@@ -175,19 +174,18 @@ void ChassisTask()
     }
 
     // 根据控制模式设定旋转速度
-    switch (chassis_cmd_recv.chassis_mode)
-    {
-    case CHASSIS_NO_FOLLOW: // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
-        chassis_cmd_recv.wz = 0;
-        break;
-    case CHASSIS_FOLLOW_GIMBAL_YAW: // 跟随云台,不单独设置pid,以误差角度平方为速度输出
-        chassis_cmd_recv.wz = 2.5f * chassis_cmd_recv.offset_angle * abs(chassis_cmd_recv.offset_angle);
-        break;
-    case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
-        chassis_cmd_recv.wz = 4000;
-        break;
-    default:
-        break;
+    switch (chassis_cmd_recv.chassis_mode) {
+        case CHASSIS_NO_FOLLOW: // 底盘不旋转,但维持全向机动,一般用于调整云台姿态
+            chassis_cmd_recv.wz = 0;
+            break;
+        case CHASSIS_FOLLOW_GIMBAL_YAW: // 跟随云台,不单独设置pid,以误差角度平方为速度输出
+            chassis_cmd_recv.wz = 2.5f * chassis_cmd_recv.offset_angle * abs(chassis_cmd_recv.offset_angle);
+            break;
+        case CHASSIS_ROTATE: // 自旋,同时保持全向机动;当前wz维持定值,后续增加不规则的变速策略
+            chassis_cmd_recv.wz = 4000;
+            break;
+        default:
+            break;
     }
 
     // 根据云台和底盘的角度offset将控制量映射到底盘坐标系上
@@ -198,7 +196,11 @@ void ChassisTask()
     chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
 
     // 根据控制模式进行正运动学解算,计算底盘输出
+#if defined(CHASSIS_TYPE_OMNI)
     OmniCalculate();
+#elif defined(CHASSIS_TYPE_MECANUM)
+    MecanumCalculate();
+#endif
 
     // 根据裁判系统的反馈数据和电容数据对输出限幅并设定闭环参考值
     LimitChassisOutput();
@@ -214,5 +216,5 @@ void ChassisTask()
     // chassis_feedback_data.rest_heat = referee_data->PowerHeatData.shooter_heat0;
 
     // 推送反馈消息
-    PubPushMessage(chassis_pub, (void*)&chassis_feedback_data);
+    PubPushMessage(chassis_pub, (void *) &chassis_feedback_data);
 }
