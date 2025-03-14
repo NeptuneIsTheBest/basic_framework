@@ -157,12 +157,13 @@ static void MouseKeyControlSet()
     gimbal_cmd_send.yaw -= (float)rc_data[TEMP].mouse.x * 0.05f;
     gimbal_cmd_send.pitch -= (float)rc_data[TEMP].mouse.y * 0.01f;
 
-    if(rc_data[TEMP].key[KEY_PRESS].q){
+    if(rc_data[TEMP].key_count[KEY_PRESS][Key_Q] % 2){
         chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
     }
     else {
         chassis_cmd_send.chassis_mode = CHASSIS_FOLLOW_GIMBAL_YAW;
     }
+
     /************************* auto_aim ************************/
     if (rc_data[TEMP].mouse.press_r)
     {
@@ -205,22 +206,23 @@ static void MouseKeyControlSet()
             shoot_cmd_send.load_mode = LOAD_STOP;
             break;
         default:
-            if (!rc_data[TEMP].mouse.press_r || vision_recv_data->target_state == NO_TARGET)
-            {
-                shoot_cmd_send.load_mode = LOAD_1_BULLET;
-            }
-            else
-            {
-                if (vision_recv_data->fire_mode == AUTO_AIM)//自瞄单发  打符||精确射击
-                {
-                    shoot_cmd_send.load_mode = LOAD_1_BULLET;
-                }
-                else if (vision_recv_data->fire_mode == AUTO_FIRE)//自瞄连射 长摁
-                {
-                    shoot_cmd_send.load_mode = vision_recv_data->target_state == READY_TO_FIRE ? LOAD_BURSTFIRE : LOAD_STOP;
-                }
-            }
-            break;
+//            if (!rc_data[TEMP].mouse.press_r || vision_recv_data->target_state == NO_TARGET)
+//            {
+//                shoot_cmd_send.load_mode = LOAD_1_BULLET;
+//            }
+//            else
+//            {
+//                if (vision_recv_data->fire_mode == AUTO_AIM)//自瞄单发  打符||精确射击
+//                {
+//                    shoot_cmd_send.load_mode = LOAD_1_BULLET;
+//                }
+//                else if (vision_recv_data->fire_mode == AUTO_FIRE)//自瞄连射 长摁
+//                {
+//                    shoot_cmd_send.load_mode = vision_recv_data->target_state == READY_TO_FIRE ? LOAD_BURSTFIRE : LOAD_STOP;
+//                }
+//            }
+                shoot_cmd_send.load_mode = LOAD_BURSTFIRE;
+                break;
         }
     }
     else
