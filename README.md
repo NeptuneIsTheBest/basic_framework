@@ -7,11 +7,11 @@
 	<p>
 		<img src="https://img.shields.io/badge/version-beta-blue"/>
 		<img src="https://img.shields.io/badge/license-MIT-green"/>
-    	<img src="https://github.com/HNUYueLuRM/basic_framework/actions/workflows/c-cpp.yml/badge.svg"/>
+		<img src="https://github.com/NeptuneIsTheBest/basic_framework/actions/workflows/build-test.yml/badge.svg"/>
     </p>
    	<p>
-		<img src="https://gitee.com/HNUYueLuRM/basic_framework/badge/star.svg"/>
-		<img src="https://gitee.com/HNUYueLuRM/basic_framework/badge/fork.svg"/>
+		<img src="https://img.shields.io/github/stars/NeptuneIsTheBest/basic_framework"/>
+		<img src="https://img.shields.io/github/forks/NeptuneIsTheBest/basic_framework"/>
 	</p>
     <h5><p><font face="consolas">Best RoboMaster embedded EC open-source code ever?</p></h>
 </div>
@@ -24,8 +24,7 @@
 
 ***==别忘了仓库根目录下的`.Doc`文件夹中有关于配置环境和开发更详尽的说明！==***
 
-- 若无法访问github，戳[gitee仓库](https://gitee.com/hnuyuelurm/basic_framework)
-- 若gitee内容被屏蔽，戳[github仓库](https://github.com/HNUYueLuRM/basic_framework)
+- 仓库地址：[github仓库](https://github.com/NeptuneIsTheBest/basic_framework)
 
 > 基于basic_framework打造的C++进阶重构版本[***powerful_framework***](https://gitee.com/hnuyuelurm/powerful_framework)现已发布！增加全新的消息交互机制和严格的跨任务数据读写保护，采用了现代构建系统CMake+Ninja以追求极致的编译速度，各种针对嵌入式的编译优化全开，DIY程度进一步提升，更有自定义CMSIS-DSP和Eigen等扩展库支持！快来加入试用/和我们一起开发吧😋
 
@@ -76,7 +75,7 @@
 
    ![balance](.assets/balance.gif)
 
-这些机器人的程序均基于basic_framework打造，已在我们的仓库中提供：[HNUYueLuRM](https://gitee.com/hnuyuelurm)
+这些机器人的程序均基于basic_framework打造，已在我的仓库中提供：[NeptuneIsTheBest/basic_framework](https://github.com/NeptuneIsTheBest/basic_framework)
 
 > 更多测试视频可以关注我们的bilibili账号：[湖南大学跃鹿战队](https://space.bilibili.com/522795884)，或在bilibili搜索跃鹿战队，观看我们的比赛视频。
 

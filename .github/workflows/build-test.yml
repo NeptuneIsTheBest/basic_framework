@@ -1,0 +1,30 @@
+name: Build Test
+
+on:
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-system: [ "make", "ninja" ]
+
+    steps:
+      - uses: carlosperate/arm-none-eabi-gcc-action@v1
+      - run: arm-none-eabi-gcc --version
+
+      - uses: actions/checkout@v6
+
+      - name: Build with make
+        if: ${{ matrix.build-system == 'make' }}
+        run: |
+          nproc=$(nproc)
+          make -j$((nproc + 1))
+
+      - name: Build with Ninja
+        if: ${{ matrix.build-system == 'ninja' }}
+        run: |
+          cmake -B build -G Ninja
+          ninja -C build
