@@ -28,6 +28,7 @@ static USARTInstance *usart_instance[DEVICE_USART_CNT] = {NULL};
  */
 void USARTServiceInit(USARTInstance *_instance)
 {
+    _instance->recv_size = 0;
     HAL_UARTEx_ReceiveToIdle_DMA(_instance->usart_handle, _instance->recv_buff, _instance->recv_buff_size);
     // 关闭dma half transfer中断防止两次进入HAL_UARTEx_RxEventCallback()
     // 这是HAL库的一个设计失误,发生DMA传输完成/半完成以及串口IDLE中断都会触发HAL_UARTEx_RxEventCallback()
@@ -45,6 +46,10 @@ USARTInstance *USARTRegister(USART_Init_Config_s *init_config)
         if (usart_instance[i]->usart_handle == init_config->usart_handle)
             while (1)
                 LOGERROR("[bsp_usart] USART instance already registered!");
+
+    if (init_config->recv_buff_size > USART_RXBUFF_LIMIT)
+        while (1)
+            LOGERROR("[bsp_usart] USART recv buffer exceeds limit!");
 
     USARTInstance *instance = (USARTInstance *)malloc(sizeof(USARTInstance));
     memset(instance, 0, sizeof(USARTInstance));
@@ -82,7 +87,7 @@ void USARTSend(USARTInstance *_instance, uint8_t *send_buf, uint16_t send_size, 
 /* 串口发送时,gstate会被设为BUSY_TX */
 uint8_t USARTIsReady(USARTInstance *_instance)
 {
-    if (_instance->usart_handle->gState | HAL_UART_STATE_BUSY_TX)
+    if ((_instance->usart_handle->gState & HAL_UART_STATE_BUSY_TX) != 0U)
         return 0;
     else
         return 1;
@@ -107,6 +112,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
         { // call the callback function if it is not NULL
             if (usart_instance[i]->module_callback != NULL)
             {
+                usart_instance[i]->recv_size = Size;
                 usart_instance[i]->module_callback();
                 memset(usart_instance[i]->recv_buff, 0, Size); // 接收结束后清空buffer,对于变长数据是必要的
             }

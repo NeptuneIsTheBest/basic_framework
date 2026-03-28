@@ -163,8 +163,8 @@ static void MecanumCalculate()
 static void LimitChassisOutput()
 {
     // 功率限制待添加
-    // referee_data->PowerHeatData.chassis_power;
-    // referee_data->PowerHeatData.chassis_power_buffer;
+    // referee_data->PowerHeatData.buffer_energy;
+    // referee_data->PowerHeatData.shooter_17mm_barrel_heat;
 
     // 完成功率限制后进行电机参考输入设定
     DJIMotorSetRef(motor_lf, vt_lf);
@@ -247,11 +247,11 @@ void ChassisTask()
     EstimateSpeed();
 
     // // 获取裁判系统数据   建议将裁判系统与底盘分离，所以此处数据应使用消息中心发送
-    // // 我方颜色id小于7是红色,大于7是蓝色,注意这里发送的是对方的颜色, 0:blue , 1:red
-    // chassis_feedback_data.enemy_color = referee_data->GameRobotState.robot_id > 7 ? 1 : 0;
+    // // 我方颜色 ID 1~9 为红方，101~109 为蓝方，注意这里发送的是对方的颜色, 0:blue , 1:red
+    // chassis_feedback_data.enemy_color = referee_data->GameRobotState.robot_id >= 100 ? 1 : 0;
     // // 当前只做了17mm热量的数据获取,后续根据robot_def中的宏切换双枪管和英雄42mm的情况
     // chassis_feedback_data.bullet_speed = referee_data->GameRobotState.shooter_id1_17mm_speed_limit;
-    // chassis_feedback_data.rest_heat = referee_data->PowerHeatData.shooter_heat0;
+    // chassis_feedback_data.rest_heat = referee_data->PowerHeatData.shooter_17mm_barrel_heat;
 
     // 推送反馈消息
 #ifdef ONE_BOARD

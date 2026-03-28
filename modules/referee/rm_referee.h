@@ -1,11 +1,11 @@
 #ifndef RM_REFEREE_H
 #define RM_REFEREE_H
 
+#include "FreeRTOS.h"
+#include "bsp_usart.h"
+#include "robot_def.h"
 #include "usart.h"
 #include "referee_protocol.h"
-#include "robot_def.h"
-#include "bsp_usart.h"
-#include "FreeRTOS.h"
 
 extern uint8_t UI_Seq;
 
@@ -25,21 +25,32 @@ typedef struct
 
 	xFrameHeader FrameHeader; // 接收到的帧头信息
 	uint16_t CmdID;
-	ext_game_state_t GameState;							   // 0x0001
-	ext_game_result_t GameResult;						   // 0x0002
-	ext_game_robot_HP_t GameRobotHP;					   // 0x0003
-	ext_event_data_t EventData;							   // 0x0101
-	ext_supply_projectile_action_t SupplyProjectileAction; // 0x0102
-	ext_game_robot_state_t GameRobotState;				   // 0x0201
-	ext_power_heat_data_t PowerHeatData;				   // 0x0202
-	ext_game_robot_pos_t GameRobotPos;					   // 0x0203
-	ext_buff_musk_t BuffMusk;							   // 0x0204
-	aerial_robot_energy_t AerialRobotEnergy;			   // 0x0205
-	ext_robot_hurt_t RobotHurt;							   // 0x0206
-	ext_shoot_data_t ShootData;							   // 0x0207
-
-	// 自定义交互数据的接收
-	Communicate_ReceiveData_t ReceiveData;
+	ext_game_state_t GameState;											   // 0x0001
+	ext_game_result_t GameResult;										   // 0x0002
+	ext_game_robot_HP_t GameRobotHP;									   // 0x0003
+	ext_event_data_t EventData;											   // 0x0101
+	ext_referee_warning_t RefereeWarning;								   // 0x0104
+	ext_dart_info_t DartInfo;											   // 0x0105
+	ext_game_robot_state_t GameRobotState;								   // 0x0201
+	ext_power_heat_data_t PowerHeatData;								   // 0x0202
+	ext_game_robot_pos_t GameRobotPos;									   // 0x0203
+	ext_buff_t Buff;													   // 0x0204
+	ext_robot_hurt_t RobotHurt;											   // 0x0206
+	ext_shoot_data_t ShootData;											   // 0x0207
+	ext_projectile_allowance_t ProjectileAllowance;						   // 0x0208
+	ext_rfid_status_t RFIDStatus;										   // 0x0209
+	ext_dart_client_cmd_t DartClientCmd;								   // 0x020A
+	ext_ground_robot_position_t GroundRobotPosition;					   // 0x020B
+	ext_sentry_info_t SentryInfo;										   // 0x020D
+	Communicate_ReceiveData_t ReceiveData;								   // 0x0301
+	ext_custom_controller_robot_interaction_t CustomControllerRobotData;	   // 0x0302
+	ext_map_command_t MapCommand;										   // 0x0303
+	ext_custom_controller_client_interaction_t CustomControllerClientData; // 0x0306
+	ext_map_data_t MapData;												   // 0x0307
+	ext_custom_info_t CustomInfo;										   // 0x0308
+	ext_robot_custom_controller_data_t RobotCustomControllerData;		   // 0x0309
+	ext_robot_custom_client_data_t RobotCustomClientData;				   // 0x0310
+	ext_custom_client_robot_cmd_t CustomClientRobotCmd;				   // 0x0311
 
 	uint8_t init_flag;
 
@@ -96,5 +107,17 @@ referee_info_t *RefereeInit(UART_HandleTypeDef *referee_usart_handle);
  * @param tx_len 发送长度
  */
 void RefereeSend(uint8_t *send, uint16_t tx_len);
+
+/**
+ * @brief 发送机器人间交互数据 0x0301，支持可变长 payload
+ *
+ * @param _id 发送者和客户端信息
+ * @param receiver_id 接收机器人 ID
+ * @param data_cmd_id 子内容 ID
+ * @param data 发送数据
+ * @param data_len payload 长度，最大 112 byte
+ * @return uint8_t 1 成功，0 参数非法
+ */
+uint8_t RefereeRobotInteractiveSend(referee_id_t *_id, uint16_t receiver_id, uint16_t data_cmd_id, const uint8_t *data, uint16_t data_len);
 
 #endif // !REFEREE_H

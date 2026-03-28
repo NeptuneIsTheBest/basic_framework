@@ -10,99 +10,175 @@
  */
 
 #include "rm_referee.h"
-#include "string.h"
-#include "crc_ref.h"
-#include "bsp_usart.h"
-#include "task.h"
-#include "daemon.h"
 #include "bsp_log.h"
 #include "cmsis_os.h"
+#include "crc_ref.h"
+#include "daemon.h"
+#include "string.h"
+#include "task.h"
 
-#define RE_RX_BUFFER_SIZE 255u // 裁判系统接收缓冲区大小
+#define RE_RX_BUFFER_SIZE REFEREE_MAX_FRAME_SIZE // 裁判系统接收缓冲区大小
 
 static USARTInstance *referee_usart_instance; // 裁判系统串口实例
 static DaemonInstance *referee_daemon;		  // 裁判系统守护进程
 static referee_info_t referee_info;			  // 裁判系统数据
 
+static uint8_t RefereeCopyData(void *dst, const uint8_t *src, uint16_t expected_len, uint16_t actual_len)
+{
+	if (actual_len != expected_len)
+		return 0;
+
+	memcpy(dst, src, expected_len);
+	return 1;
+}
+
+static void RefereeParseInteractiveData(const uint8_t *data, uint16_t data_len)
+{
+	if (data_len < LEN_student_interactive_head)
+		return;
+
+	memset(&referee_info.ReceiveData, 0, sizeof(referee_info.ReceiveData));
+	memcpy(&referee_info.ReceiveData.datahead, data, LEN_student_interactive_head);
+	referee_info.ReceiveData.data_len = data_len - LEN_student_interactive_head;
+	if (referee_info.ReceiveData.data_len > REFEREE_INTERACTIVE_MAX_DATA_LEN)
+		referee_info.ReceiveData.data_len = REFEREE_INTERACTIVE_MAX_DATA_LEN;
+	memcpy(referee_info.ReceiveData.data, data + LEN_student_interactive_head, referee_info.ReceiveData.data_len);
+}
+
+static void RefereeParseFrame(uint16_t cmd_id, const uint8_t *data, uint16_t data_len)
+{
+	switch (cmd_id)
+	{
+	case ID_game_state:
+		RefereeCopyData(&referee_info.GameState, data, LEN_game_state, data_len);
+		break;
+	case ID_game_result:
+		RefereeCopyData(&referee_info.GameResult, data, LEN_game_result, data_len);
+		break;
+	case ID_game_robot_survivors:
+		RefereeCopyData(&referee_info.GameRobotHP, data, LEN_game_robot_HP, data_len);
+		break;
+	case ID_event_data:
+		RefereeCopyData(&referee_info.EventData, data, LEN_event_data, data_len);
+		break;
+	case ID_referee_warning:
+		RefereeCopyData(&referee_info.RefereeWarning, data, LEN_referee_warning, data_len);
+		break;
+	case ID_dart_info:
+		RefereeCopyData(&referee_info.DartInfo, data, LEN_dart_info, data_len);
+		break;
+	case ID_game_robot_state:
+		RefereeCopyData(&referee_info.GameRobotState, data, LEN_game_robot_state, data_len);
+		break;
+	case ID_power_heat_data:
+		RefereeCopyData(&referee_info.PowerHeatData, data, LEN_power_heat_data, data_len);
+		break;
+	case ID_game_robot_pos:
+		RefereeCopyData(&referee_info.GameRobotPos, data, LEN_game_robot_pos, data_len);
+		break;
+	case ID_buff:
+		RefereeCopyData(&referee_info.Buff, data, LEN_buff, data_len);
+		break;
+	case ID_robot_hurt:
+		RefereeCopyData(&referee_info.RobotHurt, data, LEN_robot_hurt, data_len);
+		break;
+	case ID_shoot_data:
+		RefereeCopyData(&referee_info.ShootData, data, LEN_shoot_data, data_len);
+		break;
+	case ID_projectile_allowance:
+		RefereeCopyData(&referee_info.ProjectileAllowance, data, LEN_projectile_allowance, data_len);
+		break;
+	case ID_rfid_status:
+		RefereeCopyData(&referee_info.RFIDStatus, data, LEN_rfid_status, data_len);
+		break;
+	case ID_dart_client_cmd:
+		RefereeCopyData(&referee_info.DartClientCmd, data, LEN_dart_client_cmd, data_len);
+		break;
+	case ID_ground_robot_position:
+		RefereeCopyData(&referee_info.GroundRobotPosition, data, LEN_ground_robot_position, data_len);
+		break;
+	case ID_sentry_info:
+		RefereeCopyData(&referee_info.SentryInfo, data, LEN_sentry_info, data_len);
+		break;
+	case ID_student_interactive:
+		if (data_len <= LEN_student_interactive_max)
+			RefereeParseInteractiveData(data, data_len);
+		break;
+	case ID_custom_controller_robot_interaction:
+		RefereeCopyData(&referee_info.CustomControllerRobotData, data, LEN_custom_controller_robot_interaction, data_len);
+		break;
+	case ID_map_command:
+		RefereeCopyData(&referee_info.MapCommand, data, LEN_map_command, data_len);
+		break;
+	case ID_custom_controller_client_interaction:
+		RefereeCopyData(&referee_info.CustomControllerClientData, data, LEN_custom_controller_client_interaction, data_len);
+		break;
+	case ID_map_data:
+		RefereeCopyData(&referee_info.MapData, data, LEN_map_data, data_len);
+		break;
+	case ID_custom_info:
+		RefereeCopyData(&referee_info.CustomInfo, data, LEN_custom_info, data_len);
+		break;
+	case ID_robot_custom_controller_data:
+		RefereeCopyData(&referee_info.RobotCustomControllerData, data, LEN_robot_custom_controller_data, data_len);
+		break;
+	case ID_robot_custom_client_data:
+		RefereeCopyData(&referee_info.RobotCustomClientData, data, LEN_robot_custom_client_data, data_len);
+		break;
+	case ID_custom_client_robot_cmd:
+		RefereeCopyData(&referee_info.CustomClientRobotCmd, data, LEN_custom_client_robot_cmd, data_len);
+		break;
+	default:
+		break;
+	}
+}
+
 /**
  * @brief  读取裁判数据,中断中读取保证速度
  * @param  buff: 读取到的裁判系统原始数据
- * @retval 是否对正误判断做处理
- * @attention  在此判断帧头和CRC校验,无误再写入数据，不重复判断帧头
+ * @param  buff_len: 实际收到的数据长度
  */
-static void JudgeReadData(uint8_t *buff)
+static void JudgeReadData(uint8_t *buff, uint16_t buff_len)
 {
-	uint16_t judge_length; // 统计一帧数据长度
-	if (buff == NULL)	   // 空数据包，则不作任何处理
+	uint16_t offset = 0;
+
+	if (buff == NULL || buff_len < (LEN_HEADER + LEN_CMDID + LEN_TAIL))
 		return;
 
-	// 写入帧头数据(5-byte),用于判断是否开始存储裁判数据
-	memcpy(&referee_info.FrameHeader, buff, LEN_HEADER);
-
-	// 判断帧头数据(0)是否为0xA5
-	if (buff[SOF] == REFEREE_SOF)
+	while ((offset + LEN_HEADER + LEN_CMDID + LEN_TAIL) <= buff_len)
 	{
-		// 帧头CRC8校验
-		if (Verify_CRC8_Check_Sum(buff, LEN_HEADER) == TRUE)
+		uint16_t data_length;
+		uint16_t frame_length;
+		uint16_t cmd_id;
+
+		if (buff[offset + SOF] != REFEREE_SOF)
 		{
-			// 统计一帧数据长度(byte),用于CR16校验
-			judge_length = buff[DATA_LENGTH] + LEN_HEADER + LEN_CMDID + LEN_TAIL;
-			// 帧尾CRC16校验
-			if (Verify_CRC16_Check_Sum(buff, judge_length) == TRUE)
-			{
-				// 2个8位拼成16位int
-				referee_info.CmdID = (buff[6] << 8 | buff[5]);
-				// 解析数据命令码,将数据拷贝到相应结构体中(注意拷贝数据的长度)
-				// 第8个字节开始才是数据 data=7
-				switch (referee_info.CmdID)
-				{
-				case ID_game_state: // 0x0001
-					memcpy(&referee_info.GameState, (buff + DATA_Offset), LEN_game_state);
-					break;
-				case ID_game_result: // 0x0002
-					memcpy(&referee_info.GameResult, (buff + DATA_Offset), LEN_game_result);
-					break;
-				case ID_game_robot_survivors: // 0x0003
-					memcpy(&referee_info.GameRobotHP, (buff + DATA_Offset), LEN_game_robot_HP);
-					break;
-				case ID_event_data: // 0x0101
-					memcpy(&referee_info.EventData, (buff + DATA_Offset), LEN_event_data);
-					break;
-				case ID_supply_projectile_action: // 0x0102
-					memcpy(&referee_info.SupplyProjectileAction, (buff + DATA_Offset), LEN_supply_projectile_action);
-					break;
-				case ID_game_robot_state: // 0x0201
-					memcpy(&referee_info.GameRobotState, (buff + DATA_Offset), LEN_game_robot_state);
-					break;
-				case ID_power_heat_data: // 0x0202
-					memcpy(&referee_info.PowerHeatData, (buff + DATA_Offset), LEN_power_heat_data);
-					break;
-				case ID_game_robot_pos: // 0x0203
-					memcpy(&referee_info.GameRobotPos, (buff + DATA_Offset), LEN_game_robot_pos);
-					break;
-				case ID_buff_musk: // 0x0204
-					memcpy(&referee_info.BuffMusk, (buff + DATA_Offset), LEN_buff_musk);
-					break;
-				case ID_aerial_robot_energy: // 0x0205
-					memcpy(&referee_info.AerialRobotEnergy, (buff + DATA_Offset), LEN_aerial_robot_energy);
-					break;
-				case ID_robot_hurt: // 0x0206
-					memcpy(&referee_info.RobotHurt, (buff + DATA_Offset), LEN_robot_hurt);
-					break;
-				case ID_shoot_data: // 0x0207
-					memcpy(&referee_info.ShootData, (buff + DATA_Offset), LEN_shoot_data);
-					break;
-				case ID_student_interactive: // 0x0301   syhtodo接收代码未测试
-					memcpy(&referee_info.ReceiveData, (buff + DATA_Offset), LEN_receive_data);
-					break;
-				}
-			}
+			offset++;
+			continue;
 		}
-		// 首地址加帧长度,指向CRC16下一字节,用来判断是否为0xA5,从而判断一个数据包是否有多帧数据
-		if (*(buff + sizeof(xFrameHeader) + LEN_CMDID + referee_info.FrameHeader.DataLength + LEN_TAIL) == 0xA5)
-		{ // 如果一个数据包出现了多帧数据,则再次调用解析函数,直到所有数据包解析完毕
-			JudgeReadData(buff + sizeof(xFrameHeader) + LEN_CMDID + referee_info.FrameHeader.DataLength + LEN_TAIL);
+
+		if (Verify_CRC8_Check_Sum(buff + offset, LEN_HEADER) != TRUE)
+		{
+			offset++;
+			continue;
 		}
+
+		data_length = (uint16_t)buff[offset + DATA_LENGTH] | ((uint16_t)buff[offset + DATA_LENGTH + 1] << 8);
+		frame_length = LEN_HEADER + LEN_CMDID + LEN_TAIL + data_length;
+		if (frame_length > (uint16_t)(buff_len - offset))
+			break;
+
+		if (Verify_CRC16_Check_Sum(buff + offset, frame_length) != TRUE)
+		{
+			offset++;
+			continue;
+		}
+
+		memcpy(&referee_info.FrameHeader, buff + offset, LEN_HEADER);
+		cmd_id = (uint16_t)buff[offset + CMD_ID_Offset] | ((uint16_t)buff[offset + CMD_ID_Offset + 1] << 8);
+		referee_info.CmdID = cmd_id;
+		RefereeParseFrame(cmd_id, buff + offset + DATA_Offset, data_length);
+		offset += frame_length;
 	}
 }
 
@@ -110,7 +186,7 @@ static void JudgeReadData(uint8_t *buff)
 static void RefereeRxCallback()
 {
 	DaemonReload(referee_daemon);
-	JudgeReadData(referee_usart_instance->recv_buff);
+	JudgeReadData(referee_usart_instance->recv_buff, referee_usart_instance->recv_size);
 }
 // 裁判系统丢失回调函数,重新初始化裁判系统串口
 static void RefereeLostCallback(void *arg)
@@ -144,6 +220,48 @@ referee_info_t *RefereeInit(UART_HandleTypeDef *referee_usart_handle)
  */
 void RefereeSend(uint8_t *send, uint16_t tx_len)
 {
+	while (!USARTIsReady(referee_usart_instance))
+	{
+	}
 	USARTSend(referee_usart_instance, send, tx_len, USART_TRANSFER_DMA);
-	osDelay(115);
+	while (!USARTIsReady(referee_usart_instance))
+	{
+	}
+}
+
+uint8_t RefereeRobotInteractiveSend(referee_id_t *_id, uint16_t receiver_id, uint16_t data_cmd_id, const uint8_t *data, uint16_t data_len)
+{
+	static uint8_t send_buffer[LEN_HEADER + LEN_CMDID + LEN_student_interactive_max + LEN_TAIL];
+	xFrameHeader *frame_header;
+	ext_student_interactive_header_data_t *interactive_header;
+	uint16_t frame_len;
+
+	if (_id == NULL || data_len > REFEREE_INTERACTIVE_MAX_DATA_LEN || (data == NULL && data_len > 0))
+		return 0;
+
+	while (!USARTIsReady(referee_usart_instance))
+	{
+	}
+
+	frame_header = (xFrameHeader *)send_buffer;
+	frame_header->SOF = REFEREE_SOF;
+	frame_header->DataLength = Interactive_Data_LEN_Head + data_len;
+	frame_header->Seq = UI_Seq;
+	frame_header->CRC8 = Get_CRC8_Check_Sum(send_buffer, LEN_CRC8, 0xFF);
+
+	send_buffer[CMD_ID_Offset] = (uint8_t)(ID_student_interactive & 0x00FF);
+	send_buffer[CMD_ID_Offset + 1] = (uint8_t)(ID_student_interactive >> 8);
+
+	interactive_header = (ext_student_interactive_header_data_t *)(send_buffer + DATA_Offset);
+	interactive_header->data_cmd_id = data_cmd_id;
+	interactive_header->sender_ID = _id->Robot_ID;
+	interactive_header->receiver_ID = receiver_id;
+	if (data_len > 0)
+		memcpy(send_buffer + DATA_Offset + Interactive_Data_LEN_Head, data, data_len);
+
+	frame_len = LEN_HEADER + LEN_CMDID + frame_header->DataLength + LEN_TAIL;
+	Append_CRC16_Check_Sum(send_buffer, frame_len);
+	RefereeSend(send_buffer, frame_len);
+	UI_Seq++;
+	return 1;
 }

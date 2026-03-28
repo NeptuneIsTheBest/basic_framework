@@ -22,8 +22,8 @@
 *****************************************************************************************/
 void UIDelete(referee_id_t *_id, uint8_t Del_Operate, uint8_t Del_Layer)
 {
-	static UI_delete_t UI_delete_data;
-	uint8_t temp_datalength = Interactive_Data_LEN_Head + UI_Operate_LEN_Del; // 计算交互数据长度
+    static UI_delete_t UI_delete_data;
+    uint16_t temp_datalength = Interactive_Data_LEN_Head + UI_Operate_LEN_Del; // 计算交互数据长度
 
 	UI_delete_data.FrameHeader.SOF = REFEREE_SOF;
 	UI_delete_data.FrameHeader.DataLength = temp_datalength;
@@ -335,7 +335,7 @@ void UICharDraw(String_Data_t *graph, char graphname[3], uint32_t Graph_Operate,
 
 	va_list ap;
 	va_start(ap, fmt);
-	vsprintf((char *)graph->show_Data, fmt, ap); // 使用参数列表进行格式化并输出到字符串
+	vsnprintf((char *)graph->show_Data, sizeof(graph->show_Data), fmt, ap); // 使用参数列表进行格式化并输出到字符串
 	va_end(ap);
 	graph->Graph_Control.end_angle = strlen((const char *)graph->show_Data);
 }
@@ -350,7 +350,7 @@ void UIGraphRefresh(referee_id_t *_id, int cnt, ...)
 	UI_GraphReFresh_t UI_GraphReFresh_data;
 	Graph_Data_t graphData;
 
-	uint8_t temp_datalength = LEN_HEADER + LEN_CMDID + Interactive_Data_LEN_Head + UI_Operate_LEN_PerDraw * cnt + LEN_TAIL; // 计算交互数据长度
+	uint16_t temp_datalength = LEN_HEADER + LEN_CMDID + Interactive_Data_LEN_Head + UI_Operate_LEN_PerDraw * cnt + LEN_TAIL; // 计算交互数据长度
 
 	static uint8_t buffer[512]; // 交互数据缓存
 
@@ -391,6 +391,7 @@ void UIGraphRefresh(referee_id_t *_id, int cnt, ...)
 	}
 	Append_CRC16_Check_Sum(buffer, temp_datalength);
 	RefereeSend(buffer, temp_datalength);
+	UI_Seq++;
 
 	va_end(ap); // 结束可变参数的获取
 }
@@ -400,7 +401,7 @@ void UICharRefresh(referee_id_t *_id, String_Data_t string_Data)
 {
 	static UI_CharReFresh_t UI_CharReFresh_data;
 
-	uint8_t temp_datalength = Interactive_Data_LEN_Head + UI_Operate_LEN_DrawChar; // 计算交互数据长度
+	uint16_t temp_datalength = Interactive_Data_LEN_Head + UI_Operate_LEN_DrawChar; // 计算交互数据长度
 
 	UI_CharReFresh_data.FrameHeader.SOF = REFEREE_SOF;
 	UI_CharReFresh_data.FrameHeader.DataLength = temp_datalength;
