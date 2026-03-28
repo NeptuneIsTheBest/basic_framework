@@ -5,8 +5,14 @@
 #include "stdlib.h"
 #include "daemon.h"
 #include "bsp_log.h"
+#include "robot_def.h"
+#include "crc_ref.h"
 
-#define REMOTE_CONTROL_FRAME_SIZE 18u // 遥控器接收的buffer大小
+#if REMOTE_SOURCE == REMOTE_SOURCE_VIDEO
+#define REMOTE_CONTROL_FRAME_SIZE 21u // 图传接收端输出21字节固定帧
+#else
+#define REMOTE_CONTROL_FRAME_SIZE 18u // DR16/DBUS固定18字节
+#endif
 
 // 遥控器数据
 static RC_ctrl_t rc_ctrl[2];     //[0]:当前数据TEMP,[1]:上一次的数据LAST.用于按键持续按下和切换的判断
@@ -27,32 +33,9 @@ static void RectifyRCjoystick()
             *(&rc_ctrl[TEMP].rc.rocker_l_ + i) = 0;
 }
 
-/**
- * @brief 遥控器数据解析
- *
- * @param sbus_buf 接收buffer
- */
-static void sbus_to_rc(const uint8_t *sbus_buf)
+static void UpdateKeyState(uint16_t key_value)
 {
-    // 摇杆,直接解算时减去偏置
-    rc_ctrl[TEMP].rc.rocker_r_ = ((sbus_buf[0] | (sbus_buf[1] << 8)) & 0x07ff) - RC_CH_VALUE_OFFSET;                              //!< Channel 0
-    rc_ctrl[TEMP].rc.rocker_r1 = (((sbus_buf[1] >> 3) | (sbus_buf[2] << 5)) & 0x07ff) - RC_CH_VALUE_OFFSET;                       //!< Channel 1
-    rc_ctrl[TEMP].rc.rocker_l_ = (((sbus_buf[2] >> 6) | (sbus_buf[3] << 2) | (sbus_buf[4] << 10)) & 0x07ff) - RC_CH_VALUE_OFFSET; //!< Channel 2
-    rc_ctrl[TEMP].rc.rocker_l1 = (((sbus_buf[4] >> 1) | (sbus_buf[5] << 7)) & 0x07ff) - RC_CH_VALUE_OFFSET;                       //!< Channel 3
-    rc_ctrl[TEMP].rc.dial = ((sbus_buf[16] | (sbus_buf[17] << 8)) & 0x07FF) - RC_CH_VALUE_OFFSET;                                 // 左侧拨轮
-    RectifyRCjoystick();
-    // 开关,0左1右
-    rc_ctrl[TEMP].rc.switch_right = ((sbus_buf[5] >> 4) & 0x0003);     //!< Switch right
-    rc_ctrl[TEMP].rc.switch_left = ((sbus_buf[5] >> 4) & 0x000C) >> 2; //!< Switch left
-
-    // 鼠标解析
-    rc_ctrl[TEMP].mouse.x = (sbus_buf[6] | (sbus_buf[7] << 8)); //!< Mouse X axis
-    rc_ctrl[TEMP].mouse.y = (sbus_buf[8] | (sbus_buf[9] << 8)); //!< Mouse Y axis
-    rc_ctrl[TEMP].mouse.press_l = sbus_buf[12];                 //!< Mouse Left Is Press ?
-    rc_ctrl[TEMP].mouse.press_r = sbus_buf[13];                 //!< Mouse Right Is Press ?
-
-    //  位域的按键值解算,直接memcpy即可,注意小端低字节在前,即lsb在第一位,msb在最后
-    *(uint16_t *)&rc_ctrl[TEMP].key[KEY_PRESS] = (uint16_t)(sbus_buf[14] | (sbus_buf[15] << 8));
+    *(uint16_t *)&rc_ctrl[TEMP].key[KEY_PRESS] = key_value;
     if (rc_ctrl[TEMP].key[KEY_PRESS].ctrl) // ctrl键按下
         rc_ctrl[TEMP].key[KEY_PRESS_WITH_CTRL] = rc_ctrl[TEMP].key[KEY_PRESS];
     else
@@ -83,18 +66,121 @@ static void sbus_to_rc(const uint8_t *sbus_buf)
         if ((key_with_shift & j) && !(key_last_with_shift & j))
             rc_ctrl[TEMP].key_count[KEY_PRESS_WITH_SHIFT][i]++;
     }
-
-    memcpy(&rc_ctrl[LAST], &rc_ctrl[TEMP], sizeof(RC_ctrl_t)); // 保存上一次的数据,用于按键持续按下和切换的判断
 }
 
+static void UpdateButtonCount()
+{
+    if (rc_ctrl[TEMP].button.pause && !rc_ctrl[LAST].button.pause)
+        rc_ctrl[TEMP].button_count[RC_BUTTON_PAUSE]++;
+    if (rc_ctrl[TEMP].button.fn_left && !rc_ctrl[LAST].button.fn_left)
+        rc_ctrl[TEMP].button_count[RC_BUTTON_FN_LEFT]++;
+    if (rc_ctrl[TEMP].button.fn_right && !rc_ctrl[LAST].button.fn_right)
+        rc_ctrl[TEMP].button_count[RC_BUTTON_FN_RIGHT]++;
+    if (rc_ctrl[TEMP].button.trigger && !rc_ctrl[LAST].button.trigger)
+        rc_ctrl[TEMP].button_count[RC_BUTTON_TRIGGER]++;
+}
+
+#if REMOTE_SOURCE == REMOTE_SOURCE_VIDEO
+static uint32_t ExtractBitsLE(const uint8_t *frame, uint16_t bit_offset, uint8_t bit_len)
+{
+    uint32_t value = 0;
+
+    for (uint8_t i = 0; i < bit_len; ++i)
+    {
+        uint16_t current_bit = bit_offset + i;
+        if ((frame[current_bit / 8u] >> (current_bit % 8u)) & 0x01u)
+            value |= (1u << i);
+    }
+
+    return value;
+}
+
+static uint8_t VideoModeSwitchToRC(uint8_t mode_switch)
+{
+    switch (mode_switch)
+    {
+    case 0u:
+        return RC_SW_UP; // C
+    case 1u:
+        return RC_SW_MID; // N
+    case 2u:
+        return RC_SW_DOWN; // S
+    default:
+        return RC_SW_MID;
+    }
+}
+
+static uint8_t ParseRemoteFrame(const uint8_t *frame, uint16_t frame_len)
+{
+    if (frame_len != REMOTE_CONTROL_FRAME_SIZE)
+        return 0;
+
+    if (frame[0] != 0xA9u || frame[1] != 0x53u)
+        return 0;
+
+    if (!Verify_CRC16_Check_Sum((uint8_t *)frame, frame_len))
+        return 0;
+
+    rc_ctrl[TEMP].rc.rocker_r_ = (int16_t)ExtractBitsLE(frame, 16u, 11u) - RC_CH_VALUE_OFFSET;
+    rc_ctrl[TEMP].rc.rocker_r1 = (int16_t)ExtractBitsLE(frame, 27u, 11u) - RC_CH_VALUE_OFFSET;
+    rc_ctrl[TEMP].rc.rocker_l_ = (int16_t)ExtractBitsLE(frame, 38u, 11u) - RC_CH_VALUE_OFFSET;
+    rc_ctrl[TEMP].rc.rocker_l1 = (int16_t)ExtractBitsLE(frame, 49u, 11u) - RC_CH_VALUE_OFFSET;
+    rc_ctrl[TEMP].rc.dial = (int16_t)ExtractBitsLE(frame, 65u, 11u) - RC_CH_VALUE_OFFSET;
+    rc_ctrl[TEMP].rc.switch_left = VideoModeSwitchToRC((uint8_t)ExtractBitsLE(frame, 60u, 2u));
+    rc_ctrl[TEMP].rc.switch_right = RC_SW_MID;
+    RectifyRCjoystick();
+
+    rc_ctrl[TEMP].button.pause = (uint8_t)ExtractBitsLE(frame, 62u, 1u);
+    rc_ctrl[TEMP].button.fn_left = (uint8_t)ExtractBitsLE(frame, 63u, 1u);
+    rc_ctrl[TEMP].button.fn_right = (uint8_t)ExtractBitsLE(frame, 64u, 1u);
+    rc_ctrl[TEMP].button.trigger = (uint8_t)ExtractBitsLE(frame, 76u, 1u);
+
+    rc_ctrl[TEMP].mouse.x = (int16_t)ExtractBitsLE(frame, 80u, 16u);
+    rc_ctrl[TEMP].mouse.y = (int16_t)ExtractBitsLE(frame, 96u, 16u);
+    rc_ctrl[TEMP].mouse.press_l = (uint8_t)(ExtractBitsLE(frame, 128u, 2u) != 0u);
+    rc_ctrl[TEMP].mouse.press_r = (uint8_t)(ExtractBitsLE(frame, 130u, 2u) != 0u);
+
+    UpdateKeyState((uint16_t)ExtractBitsLE(frame, 136u, 16u));
+    UpdateButtonCount();
+    memcpy(&rc_ctrl[LAST], &rc_ctrl[TEMP], sizeof(RC_ctrl_t));
+    return 1;
+}
+#else
+static uint8_t ParseRemoteFrame(const uint8_t *sbus_buf, uint16_t frame_len)
+{
+    if (frame_len != REMOTE_CONTROL_FRAME_SIZE)
+        return 0;
+
+    rc_ctrl[TEMP].rc.rocker_r_ = ((sbus_buf[0] | (sbus_buf[1] << 8)) & 0x07ff) - RC_CH_VALUE_OFFSET;                              //!< Channel 0
+    rc_ctrl[TEMP].rc.rocker_r1 = (((sbus_buf[1] >> 3) | (sbus_buf[2] << 5)) & 0x07ff) - RC_CH_VALUE_OFFSET;                       //!< Channel 1
+    rc_ctrl[TEMP].rc.rocker_l_ = (((sbus_buf[2] >> 6) | (sbus_buf[3] << 2) | (sbus_buf[4] << 10)) & 0x07ff) - RC_CH_VALUE_OFFSET; //!< Channel 2
+    rc_ctrl[TEMP].rc.rocker_l1 = (((sbus_buf[4] >> 1) | (sbus_buf[5] << 7)) & 0x07ff) - RC_CH_VALUE_OFFSET;                       //!< Channel 3
+    rc_ctrl[TEMP].rc.dial = ((sbus_buf[16] | (sbus_buf[17] << 8)) & 0x07FF) - RC_CH_VALUE_OFFSET;
+    rc_ctrl[TEMP].rc.switch_right = ((sbus_buf[5] >> 4) & 0x0003);
+    rc_ctrl[TEMP].rc.switch_left = ((sbus_buf[5] >> 4) & 0x000C) >> 2;
+    RectifyRCjoystick();
+
+    rc_ctrl[TEMP].mouse.x = (sbus_buf[6] | (sbus_buf[7] << 8));
+    rc_ctrl[TEMP].mouse.y = (sbus_buf[8] | (sbus_buf[9] << 8));
+    rc_ctrl[TEMP].mouse.press_l = sbus_buf[12];
+    rc_ctrl[TEMP].mouse.press_r = sbus_buf[13];
+
+    memset(&rc_ctrl[TEMP].button, 0, sizeof(rc_ctrl[TEMP].button));
+    UpdateKeyState((uint16_t)(sbus_buf[14] | (sbus_buf[15] << 8)));
+    UpdateButtonCount();
+    memcpy(&rc_ctrl[LAST], &rc_ctrl[TEMP], sizeof(RC_ctrl_t));
+    return 1;
+}
+#endif
+
 /**
- * @brief 对sbus_to_rc的简单封装,用于注册到bsp_usart的回调函数中
+ * @brief 对协议解析的简单封装,用于注册到bsp_usart的回调函数中
  *
  */
 static void RemoteControlRxCallback()
 {
-    DaemonReload(rc_daemon_instance);         // 先喂狗
-    sbus_to_rc(rc_usart_instance->recv_buff); // 进行协议解析
+    if (ParseRemoteFrame(rc_usart_instance->recv_buff, rc_usart_instance->recv_size))
+        DaemonReload(rc_daemon_instance);
 }
 
 /**

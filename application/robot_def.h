@@ -24,6 +24,12 @@
 #define VISION_USE_VCP  // 使用虚拟串口发送视觉数据
 // #define VISION_USE_UART // 使用串口发送视觉数据
 
+#define REMOTE_SOURCE_DR16 0
+#define REMOTE_SOURCE_VIDEO 1
+#ifndef REMOTE_SOURCE
+#define REMOTE_SOURCE REMOTE_SOURCE_VIDEO
+#endif
+
 /* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
 // 云台参数
 #define YAW_CHASSIS_ALIGN_ECD 2711  // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
@@ -52,6 +58,14 @@
     (defined(ONE_BOARD) && defined(GIMBAL_BOARD)) ||  \
     (defined(CHASSIS_BOARD) && defined(GIMBAL_BOARD))
 #error Conflict board definition! You can only define one board type.
+#endif
+
+#if (REMOTE_SOURCE != REMOTE_SOURCE_DR16) && (REMOTE_SOURCE != REMOTE_SOURCE_VIDEO)
+#error Invalid remote source definition! Check REMOTE_SOURCE in robot_def.h.
+#endif
+
+#if (REMOTE_SOURCE == REMOTE_SOURCE_VIDEO) && defined(VISION_USE_UART)
+#error REMOTE_SOURCE_VIDEO cannot share USART1 with VISION_USE_UART. Use VCP or move one interface.
 #endif
 
 #pragma pack(1) // 压缩结构体,取消字节对齐,下面的数据都可能被传输

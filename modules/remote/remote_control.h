@@ -27,6 +27,13 @@
 #define KEY_PRESS_WITH_CTRL 1
 #define KEY_PRESS_WITH_SHIFT 2
 
+// 图传接收端额外按键
+#define RC_BUTTON_PAUSE 0
+#define RC_BUTTON_FN_LEFT 1
+#define RC_BUTTON_FN_RIGHT 2
+#define RC_BUTTON_TRIGGER 3
+#define RC_BUTTON_NUM 4
+
 // 检查接收值是否出错
 #define RC_CH_VALUE_MIN ((uint16_t)364)
 #define RC_CH_VALUE_OFFSET ((uint16_t)1024)
@@ -86,6 +93,14 @@ typedef union
     uint16_t keys; // 用于memcpy而不需要进行强制类型转换
 } Key_t;
 
+typedef struct
+{
+    uint8_t pause;
+    uint8_t fn_left;
+    uint8_t fn_right;
+    uint8_t trigger;
+} RC_Button_t;
+
 // @todo 当前结构体嵌套过深,需要进行优化
 typedef struct
 {
@@ -111,6 +126,8 @@ typedef struct
     Key_t key[3]; // 改为位域后的键盘索引,空间减少8倍,速度增加16~倍
 
     uint8_t key_count[3][16];
+    RC_Button_t button;
+    uint8_t button_count[RC_BUTTON_NUM];
 } RC_ctrl_t;
 
 /* ------------------------- Internal Data ----------------------------------- */

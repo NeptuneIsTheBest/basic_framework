@@ -91,7 +91,11 @@ void RobotCMDInit()
     //     },
     // };
     //bmi088_test = BMI088Register(&bmi088_config);
-   rc_data = RemoteControlInit(&huart3);   // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
+#if REMOTE_SOURCE == REMOTE_SOURCE_VIDEO
+    rc_data = RemoteControlInit(&huart1);
+#else
+    rc_data = RemoteControlInit(&huart3); // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
+#endif
     vision_recv_data = VisionInit(&huart1); // 视觉通信串口
 
     gimbal_cmd_pub = PubRegister("gimbal_cmd", sizeof(Gimbal_Ctrl_Cmd_s));
@@ -154,6 +158,18 @@ static void CalcOffsetAngle()
 static void RemoteControlSet()
 {
     // 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据?
+#if REMOTE_SOURCE == REMOTE_SOURCE_VIDEO
+    if (rc_data[TEMP].button_count[RC_BUTTON_FN_RIGHT] & 0x01u)
+    {
+        chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
+        gimbal_cmd_send.gimbal_mode = GIMBAL_GYRO_MODE;
+    }
+    else
+    {
+        chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
+        gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
+    }
+#else
     if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[下],底盘跟随云台
     {
         chassis_cmd_send.chassis_mode = CHASSIS_ROTATE;
@@ -164,6 +180,7 @@ static void RemoteControlSet()
         chassis_cmd_send.chassis_mode = CHASSIS_NO_FOLLOW;
         gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
     }
+#endif
 
     // 云台参数,确定云台控制数据
     if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[中],视觉模式
@@ -184,10 +201,11 @@ static void RemoteControlSet()
     chassis_cmd_send.vy = 10.0f * (float)rc_data[TEMP].rc.rocker_r1; // 1数值方向
 
     // 发射参数
-    if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上],弹舱打开
-        ;                                            // 弹舱舵机控制,待添加servo_motor模块,开启
-    else
-        ; // 弹舱舵机控制,待添加servo_motor模块,关闭
+#if REMOTE_SOURCE == REMOTE_SOURCE_VIDEO
+    shoot_cmd_send.lid_mode = (rc_data[TEMP].button_count[RC_BUTTON_FN_LEFT] & 0x01u) ? LID_OPEN : LID_CLOSE;
+#else
+    shoot_cmd_send.lid_mode = switch_is_up(rc_data[TEMP].rc.switch_right) ? LID_OPEN : LID_CLOSE;
+#endif
 
     // 摩擦轮控制,拨轮向上打为负,向下为正
     if (rc_data[TEMP].rc.dial < -100) // 向上超过100,打开摩擦轮
@@ -296,23 +314,41 @@ static void MouseKeySet()
  */
 static void EmergencyHandler()
 {
+    uint8_t emergency_stop = rc_data[TEMP].rc.dial > 300;
+
+#if REMOTE_SOURCE == REMOTE_SOURCE_VIDEO
+    emergency_stop |= (rc_data[TEMP].button_count[RC_BUTTON_PAUSE] & 0x01u);
+#endif
+
     // 拨轮的向下拨超过一半进入急停模式.注意向打时下拨轮是正
-    if (rc_data[TEMP].rc.dial > 300 || robot_state == ROBOT_STOP) // 还需添加重要应用和模块离线的判断
+    if (emergency_stop) // 还需添加重要应用和模块离线的判断
     {
+        if (robot_state != ROBOT_STOP)
+            LOGERROR("[CMD] emergency stop!");
         robot_state = ROBOT_STOP;
+    }
+#if REMOTE_SOURCE == REMOTE_SOURCE_VIDEO
+    else
+#else
+    else if (switch_is_up(rc_data[TEMP].rc.switch_right))
+#endif
+    {
+        if (robot_state != ROBOT_READY)
+            LOGINFO("[CMD] reinstate, robot ready");
+        robot_state = ROBOT_READY;
+    }
+
+    if (robot_state == ROBOT_STOP)
+    {
         gimbal_cmd_send.gimbal_mode = GIMBAL_ZERO_FORCE;
         chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
         shoot_cmd_send.shoot_mode = SHOOT_OFF;
         shoot_cmd_send.friction_mode = FRICTION_OFF;
         shoot_cmd_send.load_mode = LOAD_STOP;
-        LOGERROR("[CMD] emergency stop!");
     }
-    // 遥控器右侧开关为[上],恢复正常运行
-    if (switch_is_up(rc_data[TEMP].rc.switch_right))
+    else
     {
-        robot_state = ROBOT_READY;
         shoot_cmd_send.shoot_mode = SHOOT_ON;
-        LOGINFO("[CMD] reinstate, robot ready");
     }
 }
 
